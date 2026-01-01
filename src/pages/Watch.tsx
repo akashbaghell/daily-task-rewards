@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Share2 } from 'lucide-react';
+import { ArrowLeft, Share2, IndianRupee, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface VideoType {
@@ -16,6 +16,7 @@ interface VideoType {
   thumbnail_url: string | null;
   description: string | null;
   category: string;
+  view_count?: number;
 }
 
 const Watch = () => {
@@ -27,6 +28,7 @@ const Watch = () => {
   const [video, setVideo] = useState<VideoType | null>(null);
   const [relatedVideos, setRelatedVideos] = useState<VideoType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [earnedReward, setEarnedReward] = useState(false);
 
   useEffect(() => {
     const fetchVideo = async () => {
@@ -41,12 +43,25 @@ const Watch = () => {
       if (data) {
         setVideo(data);
 
-        // Track watch history if logged in
+        // Track watch history and earn reward if logged in
         if (user) {
           await supabase.from('watch_history').upsert(
             { user_id: user.id, video_id: id },
             { onConflict: 'user_id,video_id' }
           );
+
+          // Record video view and earn ₹20
+          const { data: earned } = await supabase.rpc('record_video_view', {
+            p_video_id: id,
+            p_user_id: user.id
+          });
+
+          if (earned === true) {
+            setEarnedReward(true);
+            toast.success('₹20 earned for watching this video!', {
+              icon: <IndianRupee className="h-4 w-4 text-green-500" />,
+            });
+          }
         }
 
         // Fetch related videos
@@ -124,12 +139,23 @@ const Watch = () => {
               />
             </div>
 
+            {/* Earning notification */}
+            {earnedReward && (
+              <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-600 dark:text-green-400">
+                <CheckCircle className="h-5 w-5" />
+                <span className="font-medium">+₹20 earned for watching this video!</span>
+              </div>
+            )}
+
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="font-display text-2xl font-bold mb-2">{video.title}</h1>
                 {video.description && (
                   <p className="text-muted-foreground">{video.description}</p>
                 )}
+                <p className="text-sm text-muted-foreground mt-2">
+                  {video.view_count || 0} views
+                </p>
               </div>
               <Button variant="outline" size="sm" onClick={shareVideo}>
                 <Share2 className="h-4 w-4 mr-2" />
