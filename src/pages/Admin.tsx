@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { 
   Plus, Pencil, Trash2, Video, Loader2, Shield, Users, 
   IndianRupee, Eye, Clock, CheckCircle, XCircle, TrendingUp,
-  Megaphone, Image, Link
+  Megaphone, Image, Link, Search, Filter
 } from 'lucide-react';
 import {
   Dialog,
@@ -136,6 +136,33 @@ const Admin = () => {
   const [adDuration, setAdDuration] = useState(5);
   const [adEarnings, setAdEarnings] = useState(0.5);
   const [adIsActive, setAdIsActive] = useState(true);
+
+  // User search & filter state
+  const [userSearch, setUserSearch] = useState('');
+  const [userFilter, setUserFilter] = useState<'all' | 'with_videos' | 'with_referrals' | 'high_earners'>('all');
+
+  // Filtered users
+  const filteredUsers = users.filter((u) => {
+    // Search filter
+    const searchMatch = userSearch.trim() === '' || 
+      (u.full_name?.toLowerCase().includes(userSearch.toLowerCase())) ||
+      (u.referral_code?.toLowerCase().includes(userSearch.toLowerCase())) ||
+      u.id.toLowerCase().includes(userSearch.toLowerCase());
+    
+    if (!searchMatch) return false;
+
+    // Category filter
+    switch (userFilter) {
+      case 'with_videos':
+        return u.videoCount > 0;
+      case 'with_referrals':
+        return u.referralCount > 0;
+      case 'high_earners':
+        return u.totalEarnings >= 500;
+      default:
+        return true;
+    }
+  });
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -667,15 +694,40 @@ const Admin = () => {
           <TabsContent value="users">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  All Users ({users.length})
-                </CardTitle>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    All Users ({filteredUsers.length} / {users.length})
+                  </CardTitle>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search name, ID, referral code..."
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        className="pl-9 w-full sm:w-64"
+                      />
+                    </div>
+                    <Select value={userFilter} onValueChange={(v) => setUserFilter(v as typeof userFilter)}>
+                      <SelectTrigger className="w-full sm:w-44">
+                        <Filter className="h-4 w-4 mr-2" />
+                        <SelectValue placeholder="Filter" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Users</SelectItem>
+                        <SelectItem value="with_videos">With Videos</SelectItem>
+                        <SelectItem value="with_referrals">With Referrals</SelectItem>
+                        <SelectItem value="high_earners">High Earners (₹500+)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                {users.length === 0 ? (
+                {filteredUsers.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
-                    No users yet
+                    {users.length === 0 ? 'No users yet' : 'No users match your search/filter'}
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -692,7 +744,7 @@ const Admin = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {users.map((u) => (
+                        {filteredUsers.map((u) => (
                           <tr key={u.id} className="border-b hover:bg-muted/50">
                             <td className="p-3">
                               <div className="flex items-center gap-2">
