@@ -27,7 +27,7 @@ declare global {
   }
 }
 
-const WATCH_PERCENTAGE = 0.8; // User must watch 80% of video to earn
+const WATCH_PERCENTAGE = 0.9; // User must watch 90% of video to earn
 
 const Watch = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,7 +48,7 @@ const Watch = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const hasClaimedRef = useRef(false);
   const playerRef = useRef<any>(null);
-  const playerContainerRef = useRef<HTMLDivElement>(null);
+  const playerContainerId = `youtube-player-${id}`;
 
   const requiredWatchTime = Math.max(30, Math.floor(videoDuration * WATCH_PERCENTAGE));
 
@@ -66,10 +66,15 @@ const Watch = () => {
 
   // Initialize YouTube player
   const initPlayer = useCallback(() => {
-    if (!video || !playerContainerRef.current || playerRef.current) return;
+    if (!video || playerRef.current) return;
+    
+    const container = document.getElementById(playerContainerId);
+    if (!container) return;
 
-    playerRef.current = new window.YT.Player(playerContainerRef.current, {
+    playerRef.current = new window.YT.Player(playerContainerId, {
       videoId: video.youtube_id,
+      width: '100%',
+      height: '100%',
       playerVars: {
         autoplay: 1,
         rel: 0,
@@ -82,7 +87,7 @@ const Watch = () => {
         },
       },
     });
-  }, [video]);
+  }, [video, playerContainerId]);
 
   useEffect(() => {
     if (!video) return;
@@ -263,7 +268,7 @@ const Watch = () => {
           {/* Main Video */}
           <div className="lg:col-span-2 space-y-4">
             <div className="aspect-video rounded-xl overflow-hidden bg-black">
-              <div ref={playerContainerRef} className="w-full h-full" />
+              <div id={playerContainerId} className="w-full h-full" />
             </div>
 
             {/* Watch Progress & Earning */}
@@ -291,7 +296,7 @@ const Watch = () => {
                     <Progress value={watchProgress} className="h-2" />
                     {videoDuration > 0 && (
                       <p className="text-xs text-muted-foreground">
-                        Required: {formatTime(requiredWatchTime)} (80% of {formatTime(Math.floor(videoDuration))})
+                        Required: {formatTime(requiredWatchTime)} (90% of {formatTime(Math.floor(videoDuration))})
                       </p>
                     )}
                   </>
