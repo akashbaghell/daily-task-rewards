@@ -110,6 +110,12 @@ const Referrals = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                  💰 1 Referral = ₹120 Bonus!
+                </p>
+              </div>
+              
               <p className="text-sm text-muted-foreground">
                 {t('referrals.shareMessage')}
               </p>
@@ -178,6 +184,9 @@ const Referrals = () => {
                           </p>
                         </div>
                       </div>
+                      <span className="text-green-600 dark:text-green-400 font-semibold">
+                        +₹120
+                      </span>
                     </div>
                   ))}
                 </div>
