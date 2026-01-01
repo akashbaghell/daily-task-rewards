@@ -4,11 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/Navbar';
 import { VideoCard } from '@/components/VideoCard';
+import { WalletCard } from '@/components/WalletCard';
+import { WithdrawalDialog } from '@/components/WithdrawalDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Video, Users, Copy, ExternalLink } from 'lucide-react';
+import { Video, Users, Copy, ExternalLink, Wallet } from 'lucide-react';
 
 interface VideoType {
   id: string;
@@ -16,6 +18,12 @@ interface VideoType {
   youtube_id: string;
   thumbnail_url: string | null;
   category: string;
+}
+
+interface WalletData {
+  balance: number;
+  total_earned: number;
+  total_withdrawn: number;
 }
 
 const Dashboard = () => {
@@ -26,7 +34,9 @@ const Dashboard = () => {
   const [videos, setVideos] = useState<VideoType[]>([]);
   const [watchCount, setWatchCount] = useState(0);
   const [referralCount, setReferralCount] = useState(0);
+  const [wallet, setWallet] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -61,6 +71,19 @@ const Dashboard = () => {
         .eq('referrer_id', user.id);
 
       setReferralCount(referralCountData || 0);
+
+      // Fetch wallet
+      const { data: walletData } = await supabase
+        .from('user_wallets')
+        .select('balance, total_earned, total_withdrawn')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (walletData) {
+        setWallet(walletData);
+      } else {
+        setWallet({ balance: 0, total_earned: 0, total_withdrawn: 0 });
+      }
 
       setLoading(false);
     };
@@ -112,6 +135,11 @@ const Dashboard = () => {
           </p>
         </div>
 
+        {/* Wallet Card */}
+        <div className="mb-10">
+          <WalletCard onWithdrawClick={() => setWithdrawDialogOpen(true)} />
+        </div>
+
         {/* Stats Cards */}
         <div className="grid gap-6 md:grid-cols-3 mb-10">
           <Card className="animate-fade-in">
@@ -123,6 +151,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{watchCount}</div>
+              <p className="text-xs text-green-500 mt-1">₹{watchCount * 20} earned</p>
             </CardContent>
           </Card>
 
@@ -135,6 +164,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{referralCount}</div>
+              <p className="text-xs text-green-500 mt-1">₹{referralCount * 100} earned</p>
             </CardContent>
           </Card>
 
@@ -186,6 +216,12 @@ const Dashboard = () => {
           </div>
         </div>
       </main>
+
+      <WithdrawalDialog
+        open={withdrawDialogOpen}
+        onOpenChange={setWithdrawDialogOpen}
+        maxAmount={wallet?.balance || 0}
+      />
     </div>
   );
 };
