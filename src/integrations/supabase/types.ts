@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      earnings: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          reference_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          reference_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          reference_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -109,6 +136,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_wallets: {
+        Row: {
+          balance: number
+          created_at: string | null
+          id: string
+          total_earned: number
+          total_withdrawn: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string | null
+          id?: string
+          total_earned?: number
+          total_withdrawn?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string | null
+          id?: string
+          total_earned?: number
+          total_withdrawn?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       videos: {
         Row: {
           category: string | null
@@ -118,6 +175,7 @@ export type Database = {
           is_featured: boolean | null
           thumbnail_url: string | null
           title: string
+          view_count: number | null
           youtube_id: string
         }
         Insert: {
@@ -128,6 +186,7 @@ export type Database = {
           is_featured?: boolean | null
           thumbnail_url?: string | null
           title: string
+          view_count?: number | null
           youtube_id: string
         }
         Update: {
@@ -138,6 +197,7 @@ export type Database = {
           is_featured?: boolean | null
           thumbnail_url?: string | null
           title?: string
+          view_count?: number | null
           youtube_id?: string
         }
         Relationships: []
@@ -171,17 +231,67 @@ export type Database = {
           },
         ]
       }
+      withdrawal_requests: {
+        Row: {
+          account_holder_name: string
+          account_number: string
+          admin_notes: string | null
+          amount: number
+          bank_name: string
+          created_at: string | null
+          id: string
+          ifsc_code: string
+          processed_at: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          account_holder_name: string
+          account_number: string
+          admin_notes?: string | null
+          amount: number
+          bank_name: string
+          created_at?: string | null
+          id?: string
+          ifsc_code: string
+          processed_at?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          account_holder_name?: string
+          account_number?: string
+          admin_notes?: string | null
+          amount?: number
+          bank_name?: string
+          created_at?: string | null
+          id?: string
+          ifsc_code?: string
+          processed_at?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      add_referral_bonus: {
+        Args: { p_referred_id: string; p_referrer_id: string }
+        Returns: undefined
+      }
       generate_referral_code: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      record_video_view: {
+        Args: { p_user_id: string; p_video_id: string }
         Returns: boolean
       }
     }
