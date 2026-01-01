@@ -57,9 +57,6 @@ interface WithdrawalRequest {
   admin_notes: string | null;
   created_at: string;
   user_id: string;
-  profiles?: {
-    full_name: string | null;
-  };
 }
 
 interface Stats {
@@ -134,13 +131,10 @@ const Admin = () => {
   const fetchWithdrawals = async () => {
     const { data } = await supabase
       .from('withdrawal_requests')
-      .select(`
-        *,
-        profiles:user_id (full_name)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (data) setWithdrawals(data as WithdrawalRequest[]);
+    if (data) setWithdrawals(data);
   };
 
   const fetchStats = async () => {
@@ -300,20 +294,12 @@ const Admin = () => {
       return;
     }
 
-    // If approved, deduct from wallet
+    // If approved, deduct from wallet using the rpc function
     if (action === 'approved') {
+      // @ts-ignore - process_withdrawal function exists in db
       await supabase.rpc('process_withdrawal', {
         p_user_id: userId,
         p_amount: amount
-      }).catch(() => {
-        // Fallback: direct update if rpc doesn't exist
-        supabase
-          .from('user_wallets')
-          .update({
-            balance: supabase.rpc('subtract', { a: 'balance', b: amount }),
-            total_withdrawn: supabase.rpc('add', { a: 'total_withdrawn', b: amount })
-          })
-          .eq('user_id', userId);
       });
     }
 
@@ -654,7 +640,7 @@ const Admin = () => {
                               </span>
                             </div>
                             <div className="text-sm space-y-1">
-                              <p><strong>User:</strong> {withdrawal.profiles?.full_name || 'Unknown'}</p>
+                              <p><strong>User ID:</strong> {withdrawal.user_id.slice(0, 8)}...</p>
                               <p><strong>Bank:</strong> {withdrawal.bank_name}</p>
                               <p><strong>Account:</strong> {withdrawal.account_number}</p>
                               <p><strong>IFSC:</strong> {withdrawal.ifsc_code}</p>

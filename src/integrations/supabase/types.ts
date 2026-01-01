@@ -290,6 +290,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      process_withdrawal: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: undefined
+      }
       record_video_view: {
         Args: { p_user_id: string; p_video_id: string }
         Returns: boolean
