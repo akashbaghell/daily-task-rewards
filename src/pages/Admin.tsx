@@ -74,6 +74,17 @@ interface AdType {
   created_at: string;
 }
 
+interface UserDetails {
+  id: string;
+  full_name: string | null;
+  referral_code: string | null;
+  created_at: string | null;
+  videoCount: number;
+  referralCount: number;
+  totalEarnings: number;
+  walletBalance: number;
+}
+
 interface Stats {
   totalUsers: number;
   totalVideos: number;
@@ -93,6 +104,7 @@ const Admin = () => {
   const [videos, setVideos] = useState<VideoType[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
   const [ads, setAds] = useState<AdType[]>([]);
+  const [users, setUsers] = useState<UserDetails[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
     totalVideos: 0,
@@ -145,7 +157,7 @@ const Admin = () => {
   }, [isAdmin]);
 
   const fetchData = async () => {
-    await Promise.all([fetchVideos(), fetchWithdrawals(), fetchAds(), fetchStats()]);
+    await Promise.all([fetchVideos(), fetchWithdrawals(), fetchAds(), fetchUsers(), fetchStats()]);
     setLoading(false);
   };
 
@@ -174,6 +186,57 @@ const Admin = () => {
       .order('created_at', { ascending: false });
 
     if (data) setAds(data as AdType[]);
+  };
+
+  const fetchUsers = async () => {
+    // Fetch all profiles
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, referral_code, created_at')
+      .order('created_at', { ascending: false });
+
+    if (!profiles) return;
+
+    // Fetch video counts per user
+    const { data: videoCounts } = await supabase
+      .from('videos')
+      .select('uploader_id');
+
+    // Fetch referral counts per user
+    const { data: referralCounts } = await supabase
+      .from('referrals')
+      .select('referrer_id');
+
+    // Fetch earnings per user
+    const { data: earningsData } = await supabase
+      .from('earnings')
+      .select('user_id, amount');
+
+    // Fetch wallets
+    const { data: wallets } = await supabase
+      .from('user_wallets')
+      .select('user_id, balance');
+
+    // Map data to users
+    const usersWithDetails: UserDetails[] = profiles.map((profile) => {
+      const videoCount = videoCounts?.filter(v => v.uploader_id === profile.id).length || 0;
+      const referralCount = referralCounts?.filter(r => r.referrer_id === profile.id).length || 0;
+      const totalEarnings = earningsData?.filter(e => e.user_id === profile.id).reduce((sum, e) => sum + e.amount, 0) || 0;
+      const wallet = wallets?.find(w => w.user_id === profile.id);
+
+      return {
+        id: profile.id,
+        full_name: profile.full_name,
+        referral_code: profile.referral_code,
+        created_at: profile.created_at,
+        videoCount,
+        referralCount,
+        totalEarnings,
+        walletBalance: wallet?.balance || 0,
+      };
+    });
+
+    setUsers(usersWithDetails);
   };
 
   const fetchStats = async () => {
@@ -575,8 +638,12 @@ const Admin = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="videos" className="space-y-6">
+        <Tabs defaultValue="users" className="space-y-6">
           <TabsList>
+            <TabsTrigger value="users" className="gap-2">
+              <Users className="h-4 w-4" />
+              Users
+            </TabsTrigger>
             <TabsTrigger value="videos" className="gap-2">
               <Video className="h-4 w-4" />
               Videos
@@ -595,6 +662,84 @@ const Admin = () => {
               )}
             </TabsTrigger>
           </TabsList>
+
+          {/* Users Tab */}
+          <TabsContent value="users">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  All Users ({users.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {users.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    No users yet
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3 font-medium">User</th>
+                          <th className="text-left p-3 font-medium">Referral Code</th>
+                          <th className="text-center p-3 font-medium">Videos</th>
+                          <th className="text-center p-3 font-medium">Referrals</th>
+                          <th className="text-right p-3 font-medium">Total Earned</th>
+                          <th className="text-right p-3 font-medium">Wallet Balance</th>
+                          <th className="text-left p-3 font-medium">Joined</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {users.map((u) => (
+                          <tr key={u.id} className="border-b hover:bg-muted/50">
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                  <span className="text-xs font-semibold text-primary">
+                                    {u.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <p className="font-medium">{u.full_name || 'Unknown'}</p>
+                                  <p className="text-xs text-muted-foreground">{u.id.slice(0, 8)}...</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <code className="bg-muted px-2 py-1 rounded text-sm">
+                                {u.referral_code || '-'}
+                              </code>
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className={`px-2 py-1 rounded-full text-sm ${u.videoCount > 0 ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' : 'text-muted-foreground'}`}>
+                                {u.videoCount}
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className={`px-2 py-1 rounded-full text-sm ${u.referralCount > 0 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-muted-foreground'}`}>
+                                {u.referralCount}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right font-medium text-green-600">
+                              ₹{u.totalEarnings}
+                            </td>
+                            <td className="p-3 text-right font-medium">
+                              ₹{u.walletBalance}
+                            </td>
+                            <td className="p-3 text-sm text-muted-foreground">
+                              {u.created_at ? new Date(u.created_at).toLocaleDateString('en-IN') : '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Videos Tab */}
           <TabsContent value="videos">
