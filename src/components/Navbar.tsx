@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdmin } from '@/hooks/useAdmin';
-import { Play, Menu, X, Globe, LogOut, User, Shield, Wallet } from 'lucide-react';
+import { Play, Menu, X, Globe, LogOut, User, Shield, Wallet, Upload, Video } from 'lucide-react';
 import { useState } from 'react';
 import {
   DropdownMenu,
@@ -32,6 +32,7 @@ export const Navbar = () => {
     ? [
         { path: '/dashboard', label: t('nav.dashboard') },
         { path: '/videos', label: t('nav.videos') },
+        { path: '/creator', label: 'Creator Studio' },
         { path: '/wallet', label: 'Wallet' },
         { path: '/referrals', label: t('nav.referrals') },
       ]

@@ -14,7 +14,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
   Plus, Pencil, Trash2, Video, Loader2, Shield, Users, 
-  IndianRupee, Eye, Clock, CheckCircle, XCircle, TrendingUp
+  IndianRupee, Eye, Clock, CheckCircle, XCircle, TrendingUp,
+  Megaphone, Image, Link
 } from 'lucide-react';
 import {
   Dialog,
@@ -59,12 +60,27 @@ interface WithdrawalRequest {
   user_id: string;
 }
 
+interface AdType {
+  id: string;
+  title: string;
+  ad_type: 'image' | 'video' | 'adsense';
+  media_url: string | null;
+  click_url: string | null;
+  adsense_slot: string | null;
+  duration: number;
+  earnings_per_view: number;
+  is_active: boolean;
+  view_count: number;
+  created_at: string;
+}
+
 interface Stats {
   totalUsers: number;
   totalVideos: number;
   totalViews: number;
   totalEarnings: number;
   pendingWithdrawals: number;
+  totalAds: number;
 }
 
 const categories = ['entertainment', 'education', 'tech', 'music'];
@@ -76,24 +92,38 @@ const Admin = () => {
 
   const [videos, setVideos] = useState<VideoType[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const [ads, setAds] = useState<AdType[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
     totalVideos: 0,
     totalViews: 0,
     totalEarnings: 0,
     pendingWithdrawals: 0,
+    totalAds: 0,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [adDialogOpen, setAdDialogOpen] = useState(false);
   const [editingVideo, setEditingVideo] = useState<VideoType | null>(null);
+  const [editingAd, setEditingAd] = useState<AdType | null>(null);
 
-  // Form state
+  // Video Form state
   const [title, setTitle] = useState('');
   const [youtubeId, setYoutubeId] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('entertainment');
   const [isFeatured, setIsFeatured] = useState(false);
+
+  // Ad Form state
+  const [adTitle, setAdTitle] = useState('');
+  const [adType, setAdType] = useState<'image' | 'video' | 'adsense'>('image');
+  const [adMediaUrl, setAdMediaUrl] = useState('');
+  const [adClickUrl, setAdClickUrl] = useState('');
+  const [adAdsenseSlot, setAdAdsenseSlot] = useState('');
+  const [adDuration, setAdDuration] = useState(5);
+  const [adEarnings, setAdEarnings] = useState(0.5);
+  const [adIsActive, setAdIsActive] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -115,7 +145,7 @@ const Admin = () => {
   }, [isAdmin]);
 
   const fetchData = async () => {
-    await Promise.all([fetchVideos(), fetchWithdrawals(), fetchStats()]);
+    await Promise.all([fetchVideos(), fetchWithdrawals(), fetchAds(), fetchStats()]);
     setLoading(false);
   };
 
@@ -135,6 +165,15 @@ const Admin = () => {
       .order('created_at', { ascending: false });
 
     if (data) setWithdrawals(data);
+  };
+
+  const fetchAds = async () => {
+    const { data } = await supabase
+      .from('ads')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (data) setAds(data as AdType[]);
   };
 
   const fetchStats = async () => {
@@ -168,13 +207,136 @@ const Admin = () => {
       .select('*', { count: 'exact', head: true })
       .eq('status', 'pending');
 
+    // Total ads
+    const { count: adsCount } = await supabase
+      .from('ads')
+      .select('*', { count: 'exact', head: true });
+
     setStats({
       totalUsers: usersCount || 0,
       totalVideos: videosCount || 0,
       totalViews,
       totalEarnings,
       pendingWithdrawals: pendingCount || 0,
+      totalAds: adsCount || 0,
     });
+  };
+
+  const resetAdForm = () => {
+    setAdTitle('');
+    setAdType('image');
+    setAdMediaUrl('');
+    setAdClickUrl('');
+    setAdAdsenseSlot('');
+    setAdDuration(5);
+    setAdEarnings(0.5);
+    setAdIsActive(true);
+    setEditingAd(null);
+  };
+
+  const openEditAdDialog = (ad: AdType) => {
+    setEditingAd(ad);
+    setAdTitle(ad.title);
+    setAdType(ad.ad_type);
+    setAdMediaUrl(ad.media_url || '');
+    setAdClickUrl(ad.click_url || '');
+    setAdAdsenseSlot(ad.adsense_slot || '');
+    setAdDuration(ad.duration);
+    setAdEarnings(ad.earnings_per_view);
+    setAdIsActive(ad.is_active);
+    setAdDialogOpen(true);
+  };
+
+  const handleAdSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!adTitle.trim()) {
+      toast.error('Ad title is required');
+      return;
+    }
+
+    if (adType !== 'adsense' && !adMediaUrl.trim()) {
+      toast.error('Media URL is required for image/video ads');
+      return;
+    }
+
+    if (adType === 'adsense' && !adAdsenseSlot.trim()) {
+      toast.error('AdSense slot ID is required');
+      return;
+    }
+
+    setSaving(true);
+
+    const adData = {
+      title: adTitle.trim(),
+      ad_type: adType,
+      media_url: adType !== 'adsense' ? adMediaUrl.trim() : null,
+      click_url: adClickUrl.trim() || null,
+      adsense_slot: adType === 'adsense' ? adAdsenseSlot.trim() : null,
+      duration: adDuration,
+      earnings_per_view: adEarnings,
+      is_active: adIsActive,
+    };
+
+    if (editingAd) {
+      const { error } = await supabase
+        .from('ads')
+        .update(adData)
+        .eq('id', editingAd.id);
+
+      if (error) {
+        toast.error('Failed to update ad');
+      } else {
+        toast.success('Ad updated!');
+        setAdDialogOpen(false);
+        resetAdForm();
+        fetchAds();
+      }
+    } else {
+      const { error } = await supabase
+        .from('ads')
+        .insert(adData);
+
+      if (error) {
+        toast.error('Failed to add ad');
+      } else {
+        toast.success('Ad added!');
+        setAdDialogOpen(false);
+        resetAdForm();
+        fetchAds();
+        fetchStats();
+      }
+    }
+
+    setSaving(false);
+  };
+
+  const handleDeleteAd = async (id: string) => {
+    const { error } = await supabase
+      .from('ads')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      toast.error('Failed to delete ad');
+    } else {
+      toast.success('Ad deleted!');
+      fetchAds();
+      fetchStats();
+    }
+  };
+
+  const toggleAdActive = async (ad: AdType) => {
+    const { error } = await supabase
+      .from('ads')
+      .update({ is_active: !ad.is_active })
+      .eq('id', ad.id);
+
+    if (error) {
+      toast.error('Failed to update ad');
+    } else {
+      fetchAds();
+    }
   };
 
   const extractYoutubeId = (input: string): string => {
@@ -339,7 +501,7 @@ const Admin = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-5 mb-8">
+        <div className="grid gap-4 md:grid-cols-6 mb-8">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
@@ -399,6 +561,18 @@ const Admin = () => {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Megaphone className="h-8 w-8 text-pink-500" />
+                <div>
+                  <p className="text-2xl font-bold">{stats.totalAds}</p>
+                  <p className="text-xs text-muted-foreground">Active Ads</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <Tabs defaultValue="videos" className="space-y-6">
@@ -406,6 +580,10 @@ const Admin = () => {
             <TabsTrigger value="videos" className="gap-2">
               <Video className="h-4 w-4" />
               Videos
+            </TabsTrigger>
+            <TabsTrigger value="ads" className="gap-2">
+              <Megaphone className="h-4 w-4" />
+              Ads
             </TabsTrigger>
             <TabsTrigger value="withdrawals" className="gap-2">
               <IndianRupee className="h-4 w-4" />
@@ -673,6 +851,156 @@ const Admin = () => {
                             </div>
                           )}
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Ads Tab */}
+          <TabsContent value="ads">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Megaphone className="h-5 w-5" />
+                  Manage Ads ({ads.length})
+                </CardTitle>
+                <Dialog open={adDialogOpen} onOpenChange={(open) => {
+                  setAdDialogOpen(open);
+                  if (!open) resetAdForm();
+                }}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add Ad
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingAd ? 'Edit Ad' : 'Add New Ad'}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleAdSubmit} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Ad Title *</Label>
+                        <Input
+                          value={adTitle}
+                          onChange={(e) => setAdTitle(e.target.value)}
+                          placeholder="Ad title"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Ad Type</Label>
+                        <Select value={adType} onValueChange={(v: 'image' | 'video' | 'adsense') => setAdType(v)}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="image">Image Ad</SelectItem>
+                            <SelectItem value="video">Video Ad</SelectItem>
+                            <SelectItem value="adsense">Google AdSense</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {adType !== 'adsense' ? (
+                        <div className="space-y-2">
+                          <Label>Media URL *</Label>
+                          <Input
+                            value={adMediaUrl}
+                            onChange={(e) => setAdMediaUrl(e.target.value)}
+                            placeholder="https://..."
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label>AdSense Slot ID *</Label>
+                          <Input
+                            value={adAdsenseSlot}
+                            onChange={(e) => setAdAdsenseSlot(e.target.value)}
+                            placeholder="ca-pub-xxxxx/xxxxxx"
+                          />
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label>Click URL (optional)</Label>
+                        <Input
+                          value={adClickUrl}
+                          onChange={(e) => setAdClickUrl(e.target.value)}
+                          placeholder="https://..."
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Duration (seconds)</Label>
+                          <Input
+                            type="number"
+                            value={adDuration}
+                            onChange={(e) => setAdDuration(Number(e.target.value))}
+                            min={3}
+                            max={30}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Earnings per view (₹)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={adEarnings}
+                            onChange={(e) => setAdEarnings(Number(e.target.value))}
+                            min={0.1}
+                          />
+                        </div>
+                      </div>
+
+                      <Button type="submit" className="w-full" disabled={saving}>
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingAd ? 'Update Ad' : 'Add Ad'}
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {ads.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    No ads yet. Add your first ad to start monetizing!
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {ads.map((ad) => (
+                      <div key={ad.id} className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+                        <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">
+                          {ad.ad_type === 'image' ? <Image className="h-6 w-6" /> : 
+                           ad.ad_type === 'video' ? <Video className="h-6 w-6" /> : 
+                           <Megaphone className="h-6 w-6" />}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{ad.title}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="capitalize">{ad.ad_type}</span>
+                            <span>•</span>
+                            <span>{ad.duration}s</span>
+                            <span>•</span>
+                            <span>₹{ad.earnings_per_view}/view</span>
+                            <span>•</span>
+                            <span>{ad.view_count} views</span>
+                          </div>
+                        </div>
+                        <Button variant={ad.is_active ? "secondary" : "outline"} size="sm" onClick={() => toggleAdActive(ad)}>
+                          {ad.is_active ? 'Active' : 'Inactive'}
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEditAdDialog(ad)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteAd(ad.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
                       </div>
                     ))}
                   </div>

@@ -14,6 +14,141 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_views: {
+        Row: {
+          ad_id: string | null
+          earnings: number | null
+          id: string
+          video_id: string | null
+          video_owner_id: string | null
+          viewed_at: string | null
+          viewer_id: string | null
+        }
+        Insert: {
+          ad_id?: string | null
+          earnings?: number | null
+          id?: string
+          video_id?: string | null
+          video_owner_id?: string | null
+          viewed_at?: string | null
+          viewer_id?: string | null
+        }
+        Update: {
+          ad_id?: string | null
+          earnings?: number | null
+          id?: string
+          video_id?: string | null
+          video_owner_id?: string | null
+          viewed_at?: string | null
+          viewer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_views_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "ads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_views_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads: {
+        Row: {
+          ad_type: string
+          adsense_slot: string | null
+          click_url: string | null
+          created_at: string | null
+          duration: number | null
+          earnings_per_view: number | null
+          id: string
+          is_active: boolean | null
+          media_url: string | null
+          title: string
+          updated_at: string | null
+          view_count: number | null
+        }
+        Insert: {
+          ad_type: string
+          adsense_slot?: string | null
+          click_url?: string | null
+          created_at?: string | null
+          duration?: number | null
+          earnings_per_view?: number | null
+          id?: string
+          is_active?: boolean | null
+          media_url?: string | null
+          title: string
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          ad_type?: string
+          adsense_slot?: string | null
+          click_url?: string | null
+          created_at?: string | null
+          duration?: number | null
+          earnings_per_view?: number | null
+          id?: string
+          is_active?: boolean | null
+          media_url?: string | null
+          title?: string
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Relationships: []
+      }
+      creator_earnings: {
+        Row: {
+          ad_id: string | null
+          amount: number
+          created_at: string | null
+          creator_id: string
+          id: string
+          type: string
+          video_id: string | null
+        }
+        Insert: {
+          ad_id?: string | null
+          amount: number
+          created_at?: string | null
+          creator_id: string
+          id?: string
+          type: string
+          video_id?: string | null
+        }
+        Update: {
+          ad_id?: string | null
+          amount?: number
+          created_at?: string | null
+          creator_id?: string
+          id?: string
+          type?: string
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_earnings_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "ads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_earnings_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       earnings: {
         Row: {
           amount: number
@@ -171,10 +306,15 @@ export type Database = {
           category: string | null
           created_at: string | null
           description: string | null
+          duration: number | null
           id: string
           is_featured: boolean | null
+          status: string | null
           thumbnail_url: string | null
           title: string
+          total_earnings: number | null
+          uploader_id: string | null
+          video_url: string | null
           view_count: number | null
           youtube_id: string
         }
@@ -182,10 +322,15 @@ export type Database = {
           category?: string | null
           created_at?: string | null
           description?: string | null
+          duration?: number | null
           id?: string
           is_featured?: boolean | null
+          status?: string | null
           thumbnail_url?: string | null
           title: string
+          total_earnings?: number | null
+          uploader_id?: string | null
+          video_url?: string | null
           view_count?: number | null
           youtube_id: string
         }
@@ -193,10 +338,15 @@ export type Database = {
           category?: string | null
           created_at?: string | null
           description?: string | null
+          duration?: number | null
           id?: string
           is_featured?: boolean | null
+          status?: string | null
           thumbnail_url?: string | null
           title?: string
+          total_earnings?: number | null
+          uploader_id?: string | null
+          video_url?: string | null
           view_count?: number | null
           youtube_id?: string
         }
@@ -293,6 +443,10 @@ export type Database = {
       process_withdrawal: {
         Args: { p_amount: number; p_user_id: string }
         Returns: undefined
+      }
+      record_ad_view: {
+        Args: { p_ad_id: string; p_video_id: string; p_viewer_id: string }
+        Returns: boolean
       }
       record_video_view: {
         Args: { p_user_id: string; p_video_id: string }
