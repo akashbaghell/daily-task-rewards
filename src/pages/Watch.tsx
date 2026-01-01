@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { VideoCard } from '@/components/VideoCard';
@@ -20,7 +20,14 @@ interface VideoType {
   view_count?: number;
 }
 
-const REQUIRED_WATCH_TIME = 30; // seconds required to earn reward
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
+const WATCH_PERCENTAGE = 0.8; // User must watch 80% of video to earn
 
 const Watch = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,9 +42,65 @@ const Watch = () => {
   const [watchTime, setWatchTime] = useState(0);
   const [canEarn, setCanEarn] = useState(true);
   const [rewardClaimed, setRewardClaimed] = useState(false);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [playerReady, setPlayerReady] = useState(false);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const hasClaimedRef = useRef(false);
+  const playerRef = useRef<any>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+
+  const requiredWatchTime = Math.max(30, Math.floor(videoDuration * WATCH_PERCENTAGE));
+
+  // Load YouTube IFrame API
+  useEffect(() => {
+    if (window.YT && window.YT.Player) {
+      return;
+    }
+
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+  }, []);
+
+  // Initialize YouTube player
+  const initPlayer = useCallback(() => {
+    if (!video || !playerContainerRef.current || playerRef.current) return;
+
+    playerRef.current = new window.YT.Player(playerContainerRef.current, {
+      videoId: video.youtube_id,
+      playerVars: {
+        autoplay: 1,
+        rel: 0,
+      },
+      events: {
+        onReady: (event: any) => {
+          const duration = event.target.getDuration();
+          setVideoDuration(duration);
+          setPlayerReady(true);
+        },
+      },
+    });
+  }, [video]);
+
+  useEffect(() => {
+    if (!video) return;
+
+    if (window.YT && window.YT.Player) {
+      initPlayer();
+    } else {
+      window.onYouTubeIframeAPIReady = initPlayer;
+    }
+
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.destroy?.();
+        playerRef.current = null;
+      }
+      setPlayerReady(false);
+    };
+  }, [video, initPlayer]);
 
   // Fetch video data
   useEffect(() => {
@@ -93,19 +156,16 @@ const Watch = () => {
     fetchVideo();
   }, [id, user]);
 
-  // Watch timer - starts counting when video loads
+  // Watch timer - starts counting when player is ready
   useEffect(() => {
-    if (!video || !user || !canEarn || rewardClaimed) return;
+    if (!video || !user || !canEarn || rewardClaimed || !playerReady || videoDuration === 0) return;
 
     // Reset watch time when video changes
     setWatchTime(0);
     hasClaimedRef.current = false;
 
     timerRef.current = setInterval(() => {
-      setWatchTime(prev => {
-        const newTime = prev + 1;
-        return newTime;
-      });
+      setWatchTime(prev => prev + 1);
     }, 1000);
 
     return () => {
@@ -113,12 +173,12 @@ const Watch = () => {
         clearInterval(timerRef.current);
       }
     };
-  }, [video, user, canEarn, rewardClaimed]);
+  }, [video, user, canEarn, rewardClaimed, playerReady, videoDuration]);
 
   // Claim reward when watch time reaches required time
   useEffect(() => {
     const claimReward = async () => {
-      if (watchTime >= REQUIRED_WATCH_TIME && user && canEarn && !hasClaimedRef.current && id) {
+      if (watchTime >= requiredWatchTime && user && canEarn && !hasClaimedRef.current && id && requiredWatchTime > 0) {
         hasClaimedRef.current = true;
         setRewardClaimed(true);
         
@@ -143,7 +203,7 @@ const Watch = () => {
     };
 
     claimReward();
-  }, [watchTime, user, canEarn, id]);
+  }, [watchTime, user, canEarn, id, requiredWatchTime]);
 
   const shareVideo = () => {
     const url = window.location.href;
@@ -151,7 +211,14 @@ const Watch = () => {
     toast.success('Link copied!');
   };
 
-  const watchProgress = Math.min((watchTime / REQUIRED_WATCH_TIME) * 100, 100);
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  };
+
+  const watchProgress = requiredWatchTime > 0 ? Math.min((watchTime / requiredWatchTime) * 100, 100) : 0;
+  const remainingTime = Math.max(0, requiredWatchTime - watchTime);
 
   if (loading) {
     return (
@@ -196,13 +263,7 @@ const Watch = () => {
           {/* Main Video */}
           <div className="lg:col-span-2 space-y-4">
             <div className="aspect-video rounded-xl overflow-hidden bg-black">
-              <iframe
-                src={`https://www.youtube.com/embed/${video.youtube_id}?autoplay=1`}
-                title={video.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="w-full h-full"
-              />
+              <div ref={playerContainerRef} className="w-full h-full" />
             </div>
 
             {/* Watch Progress & Earning */}
@@ -219,12 +280,20 @@ const Watch = () => {
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <span className="text-muted-foreground">
-                          Watch {REQUIRED_WATCH_TIME - watchTime > 0 ? `${REQUIRED_WATCH_TIME - watchTime}s more` : 'Complete!'} to earn ₹20
+                          {videoDuration > 0 
+                            ? `Watch ${remainingTime > 0 ? formatTime(remainingTime) + ' more' : 'Complete!'} to earn ₹20`
+                            : 'Loading video...'
+                          }
                         </span>
                       </div>
                       <span className="font-medium text-primary">{Math.floor(watchProgress)}%</span>
                     </div>
                     <Progress value={watchProgress} className="h-2" />
+                    {videoDuration > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Required: {formatTime(requiredWatchTime)} (80% of {formatTime(Math.floor(videoDuration))})
+                      </p>
+                    )}
                   </>
                 ) : (
                   <div className="flex items-center gap-2 text-muted-foreground">
