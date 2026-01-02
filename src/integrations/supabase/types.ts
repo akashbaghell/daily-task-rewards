@@ -310,6 +310,39 @@ export type Database = {
           },
         ]
       }
+      rewards: {
+        Row: {
+          coin_price: number
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          type: string
+        }
+        Insert: {
+          coin_price?: number
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          type: string
+        }
+        Update: {
+          coin_price?: number
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          type?: string
+        }
+        Relationships: []
+      }
       user_daily_tasks: {
         Row: {
           completed_at: string
@@ -341,6 +374,41 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "daily_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_rewards: {
+        Row: {
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          purchased_at: string
+          reward_id: string
+          user_id: string
+        }
+        Insert: {
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          purchased_at?: string
+          reward_id: string
+          user_id: string
+        }
+        Update: {
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          purchased_at?: string
+          reward_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_rewards_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "rewards"
             referencedColumns: ["id"]
           },
         ]

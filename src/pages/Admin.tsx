@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { 
   Plus, Pencil, Trash2, Video, Loader2, Shield, Users, 
   IndianRupee, Eye, Clock, CheckCircle, XCircle, TrendingUp,
-  Megaphone, Image, Link, Search, Filter, Sparkles, Power
+  Megaphone, Image, Link, Search, Filter, Sparkles, Power, Coins, Award, History
 } from 'lucide-react';
 import {
   Dialog,
@@ -93,6 +93,8 @@ interface Stats {
   pendingWithdrawals: number;
   totalAds: number;
   totalTasks: number;
+  totalCoins: number;
+  totalRewards: number;
 }
 
 interface DailyTaskType {
@@ -105,8 +107,30 @@ interface DailyTaskType {
   created_at: string | null;
 }
 
+interface RewardType {
+  id: string;
+  name: string;
+  description: string | null;
+  type: string;
+  coin_price: number;
+  icon: string | null;
+  is_active: boolean;
+  created_at: string | null;
+}
+
+interface CoinTransactionType {
+  id: string;
+  user_id: string;
+  amount: number;
+  type: string;
+  description: string | null;
+  created_at: string;
+  user_name?: string;
+}
+
 const categories = ['entertainment', 'education', 'tech', 'music'];
 const taskTypes = ['watch_video', 'watch_3_videos', 'share_video', 'daily_login', 'referral', 'streak_7'];
+const rewardTypes = ['badge', 'feature', 'boost'];
 
 const Admin = () => {
   const { user, loading: authLoading } = useAuth();
@@ -118,6 +142,8 @@ const Admin = () => {
   const [ads, setAds] = useState<AdType[]>([]);
   const [users, setUsers] = useState<UserDetails[]>([]);
   const [dailyTasks, setDailyTasks] = useState<DailyTaskType[]>([]);
+  const [rewards, setRewards] = useState<RewardType[]>([]);
+  const [coinTransactions, setCoinTransactions] = useState<CoinTransactionType[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
     totalVideos: 0,
@@ -126,15 +152,19 @@ const Admin = () => {
     pendingWithdrawals: 0,
     totalAds: 0,
     totalTasks: 0,
+    totalCoins: 0,
+    totalRewards: 0,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [adDialogOpen, setAdDialogOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [rewardDialogOpen, setRewardDialogOpen] = useState(false);
   const [editingVideo, setEditingVideo] = useState<VideoType | null>(null);
   const [editingAd, setEditingAd] = useState<AdType | null>(null);
   const [editingTask, setEditingTask] = useState<DailyTaskType | null>(null);
+  const [editingReward, setEditingReward] = useState<RewardType | null>(null);
 
   // Video Form state
   const [title, setTitle] = useState('');
@@ -159,6 +189,14 @@ const Admin = () => {
   const [taskReward, setTaskReward] = useState(10);
   const [taskType, setTaskType] = useState('watch_video');
   const [taskIsActive, setTaskIsActive] = useState(true);
+
+  // Reward Form state
+  const [rewardName, setRewardName] = useState('');
+  const [rewardDescription, setRewardDescription] = useState('');
+  const [rewardCoinPrice, setRewardCoinPrice] = useState(100);
+  const [rewardType, setRewardType] = useState('badge');
+  const [rewardIcon, setRewardIcon] = useState('🏆');
+  const [rewardIsActive, setRewardIsActive] = useState(true);
 
   // User search & filter state
   const [userSearch, setUserSearch] = useState('');
@@ -207,7 +245,16 @@ const Admin = () => {
   }, [isAdmin]);
 
   const fetchData = async () => {
-    await Promise.all([fetchVideos(), fetchWithdrawals(), fetchAds(), fetchUsers(), fetchStats(), fetchDailyTasks()]);
+    await Promise.all([
+      fetchVideos(), 
+      fetchWithdrawals(), 
+      fetchAds(), 
+      fetchUsers(), 
+      fetchStats(), 
+      fetchDailyTasks(),
+      fetchRewards(),
+      fetchCoinTransactions()
+    ]);
     setLoading(false);
   };
 
@@ -330,6 +377,17 @@ const Admin = () => {
       .from('daily_tasks')
       .select('*', { count: 'exact', head: true });
 
+    // Total coins distributed
+    const { data: coinsData } = await supabase
+      .from('user_wallets')
+      .select('coins');
+    const totalCoins = coinsData?.reduce((sum, w) => sum + (w.coins || 0), 0) || 0;
+
+    // Total rewards
+    const { count: rewardsCount } = await supabase
+      .from('rewards')
+      .select('*', { count: 'exact', head: true });
+
     setStats({
       totalUsers: usersCount || 0,
       totalVideos: videosCount || 0,
@@ -338,7 +396,141 @@ const Admin = () => {
       pendingWithdrawals: pendingCount || 0,
       totalAds: adsCount || 0,
       totalTasks: tasksCount || 0,
+      totalCoins,
+      totalRewards: rewardsCount || 0,
     });
+  };
+
+  const fetchRewards = async () => {
+    const { data } = await supabase
+      .from('rewards')
+      .select('*')
+      .order('coin_price', { ascending: true });
+
+    if (data) setRewards(data);
+  };
+
+  const fetchCoinTransactions = async () => {
+    const { data } = await supabase
+      .from('coin_transactions')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (data) {
+      // Get user names
+      const userIds = [...new Set(data.map(t => t.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
+      
+      setCoinTransactions(data.map(t => ({
+        ...t,
+        user_name: profileMap.get(t.user_id) || 'Unknown',
+      })));
+    }
+  };
+
+  const resetRewardForm = () => {
+    setRewardName('');
+    setRewardDescription('');
+    setRewardCoinPrice(100);
+    setRewardType('badge');
+    setRewardIcon('🏆');
+    setRewardIsActive(true);
+    setEditingReward(null);
+  };
+
+  const openEditRewardDialog = (reward: RewardType) => {
+    setEditingReward(reward);
+    setRewardName(reward.name);
+    setRewardDescription(reward.description || '');
+    setRewardCoinPrice(reward.coin_price);
+    setRewardType(reward.type);
+    setRewardIcon(reward.icon || '🏆');
+    setRewardIsActive(reward.is_active);
+    setRewardDialogOpen(true);
+  };
+
+  const handleRewardSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!rewardName.trim()) {
+      toast.error('Reward name is required');
+      return;
+    }
+
+    setSaving(true);
+
+    const rewardData = {
+      name: rewardName.trim(),
+      description: rewardDescription.trim() || null,
+      coin_price: rewardCoinPrice,
+      type: rewardType,
+      icon: rewardIcon.trim(),
+      is_active: rewardIsActive,
+    };
+
+    if (editingReward) {
+      const { error } = await supabase
+        .from('rewards')
+        .update(rewardData)
+        .eq('id', editingReward.id);
+
+      if (error) {
+        toast.error('Failed to update reward');
+      } else {
+        toast.success('Reward updated successfully');
+        setRewardDialogOpen(false);
+        resetRewardForm();
+        fetchRewards();
+      }
+    } else {
+      const { error } = await supabase
+        .from('rewards')
+        .insert(rewardData);
+
+      if (error) {
+        toast.error('Failed to create reward');
+      } else {
+        toast.success('Reward created successfully');
+        setRewardDialogOpen(false);
+        resetRewardForm();
+        fetchRewards();
+        fetchStats();
+      }
+    }
+
+    setSaving(false);
+  };
+
+  const handleDeleteReward = async (id: string) => {
+    const { error } = await supabase.from('rewards').delete().eq('id', id);
+
+    if (error) {
+      toast.error('Failed to delete reward');
+    } else {
+      toast.success('Reward deleted');
+      fetchRewards();
+      fetchStats();
+    }
+  };
+
+  const toggleRewardActive = async (id: string, currentStatus: boolean) => {
+    const { error } = await supabase
+      .from('rewards')
+      .update({ is_active: !currentStatus })
+      .eq('id', id);
+
+    if (error) {
+      toast.error('Failed to update reward');
+    } else {
+      toast.success(currentStatus ? 'Reward deactivated' : 'Reward activated');
+      fetchRewards();
+    }
   };
 
   const fetchDailyTasks = async () => {
@@ -816,6 +1008,14 @@ const Admin = () => {
             <TabsTrigger value="tasks" className="gap-2">
               <Sparkles className="h-4 w-4" />
               Tasks
+            </TabsTrigger>
+            <TabsTrigger value="rewards" className="gap-2">
+              <Award className="h-4 w-4" />
+              Rewards
+            </TabsTrigger>
+            <TabsTrigger value="transactions" className="gap-2">
+              <Coins className="h-4 w-4" />
+              Coins
             </TabsTrigger>
             <TabsTrigger value="withdrawals" className="gap-2">
               <IndianRupee className="h-4 w-4" />
@@ -1493,6 +1693,136 @@ const Admin = () => {
                         </AlertDialog>
                       </div>
                     ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Rewards Tab */}
+          <TabsContent value="rewards">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="h-5 w-5" />
+                  Manage Rewards ({rewards.length})
+                </CardTitle>
+                <Dialog open={rewardDialogOpen} onOpenChange={(open) => {
+                  setRewardDialogOpen(open);
+                  if (!open) resetRewardForm();
+                }}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add Reward
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{editingReward ? 'Edit Reward' : 'Add New Reward'}</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleRewardSubmit} className="space-y-4">
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="col-span-1 space-y-2">
+                          <Label>Icon</Label>
+                          <Input value={rewardIcon} onChange={(e) => setRewardIcon(e.target.value)} placeholder="🏆" />
+                        </div>
+                        <div className="col-span-3 space-y-2">
+                          <Label>Name *</Label>
+                          <Input value={rewardName} onChange={(e) => setRewardName(e.target.value)} placeholder="Gold Badge" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Description</Label>
+                        <Textarea value={rewardDescription} onChange={(e) => setRewardDescription(e.target.value)} rows={2} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Type</Label>
+                          <Select value={rewardType} onValueChange={setRewardType}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {rewardTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Price (coins)</Label>
+                          <Input type="number" value={rewardCoinPrice} onChange={(e) => setRewardCoinPrice(Number(e.target.value))} min={1} />
+                        </div>
+                      </div>
+                      <Button type="submit" className="w-full" disabled={saving}>
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingReward ? 'Update' : 'Add Reward'}
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {rewards.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">No rewards yet</div>
+                ) : (
+                  <div className="space-y-2">
+                    {rewards.map((r) => (
+                      <div key={r.id} className={`flex items-center gap-4 p-3 rounded-lg border ${r.is_active ? 'bg-muted/50' : 'opacity-50'}`}>
+                        <span className="text-2xl">{r.icon}</span>
+                        <div className="flex-1">
+                          <p className="font-medium">{r.name}</p>
+                          <p className="text-xs text-muted-foreground">{r.type} • {r.coin_price} coins</p>
+                        </div>
+                        <Button variant={r.is_active ? "secondary" : "outline"} size="sm" onClick={() => toggleRewardActive(r.id, r.is_active)}>
+                          {r.is_active ? 'Active' : 'Inactive'}
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEditRewardDialog(r)}><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteReward(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Coin Transactions Tab */}
+          <TabsContent value="transactions">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Coins className="h-5 w-5 text-yellow-500" />
+                  Coin Transactions ({coinTransactions.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {coinTransactions.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">No transactions yet</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3">User</th>
+                          <th className="text-left p-3">Type</th>
+                          <th className="text-left p-3">Description</th>
+                          <th className="text-right p-3">Amount</th>
+                          <th className="text-left p-3">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {coinTransactions.map((tx) => (
+                          <tr key={tx.id} className="border-b hover:bg-muted/50">
+                            <td className="p-3 font-medium">{tx.user_name}</td>
+                            <td className="p-3"><span className="px-2 py-1 rounded bg-muted text-xs">{tx.type}</span></td>
+                            <td className="p-3 text-sm text-muted-foreground">{tx.description || '-'}</td>
+                            <td className={`p-3 text-right font-bold ${tx.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                              {tx.amount > 0 ? '+' : ''}{tx.amount}
+                            </td>
+                            <td className="p-3 text-sm text-muted-foreground">
+                              {new Date(tx.created_at).toLocaleDateString('en-IN')}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </CardContent>
