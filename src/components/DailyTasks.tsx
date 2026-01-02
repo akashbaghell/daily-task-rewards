@@ -240,22 +240,18 @@ export const DailyTasks = () => {
 
       if (insertError) throw insertError;
 
-      // Add to earnings
-      const { error: earningsError } = await supabase
-        .from('earnings')
-        .insert({
-          user_id: user.id,
-          amount: task.reward_amount,
-          type: 'daily_task',
-          reference_id: task.id,
-        });
+      // Record coin transaction
+      await supabase.from('coin_transactions').insert({
+        user_id: user.id,
+        amount: task.reward_amount,
+        type: 'earned',
+        description: `Completed task: ${task.title}`,
+      });
 
-      if (earningsError) throw earningsError;
-
-      // Update wallet
+      // Update wallet coins
       const { data: wallet } = await supabase
         .from('user_wallets')
-        .select('balance, total_earned')
+        .select('coins')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -263,10 +259,17 @@ export const DailyTasks = () => {
         await supabase
           .from('user_wallets')
           .update({
-            balance: wallet.balance + task.reward_amount,
-            total_earned: wallet.total_earned + task.reward_amount,
+            coins: (wallet.coins || 0) + task.reward_amount,
           })
           .eq('user_id', user.id);
+      } else {
+        // Create wallet if doesn't exist
+        await supabase.from('user_wallets').insert({
+          user_id: user.id,
+          coins: task.reward_amount,
+          balance: 0,
+          total_earned: 0,
+        });
       }
 
       toast.success(`🪙 ${task.reward_amount} coins claimed!`);

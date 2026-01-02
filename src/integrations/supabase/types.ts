@@ -104,6 +104,33 @@ export type Database = {
         }
         Relationships: []
       }
+      coin_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       creator_earnings: {
         Row: {
           ad_id: string | null
@@ -369,6 +396,7 @@ export type Database = {
       user_wallets: {
         Row: {
           balance: number
+          coins: number
           created_at: string | null
           id: string
           total_earned: number
@@ -378,6 +406,7 @@ export type Database = {
         }
         Insert: {
           balance?: number
+          coins?: number
           created_at?: string | null
           id?: string
           total_earned?: number
@@ -387,6 +416,7 @@ export type Database = {
         }
         Update: {
           balance?: number
+          coins?: number
           created_at?: string | null
           id?: string
           total_earned?: number

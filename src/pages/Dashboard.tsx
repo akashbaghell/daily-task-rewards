@@ -7,6 +7,7 @@ import { VideoCard } from '@/components/VideoCard';
 import { WalletCard } from '@/components/WalletCard';
 import { WithdrawalDialog } from '@/components/WithdrawalDialog';
 import { DailyTasks } from '@/components/DailyTasks';
+import { CoinShop } from '@/components/CoinShop';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -137,8 +138,13 @@ const Dashboard = () => {
         </div>
 
         {/* Wallet & Daily Tasks */}
-        <div className="grid gap-6 lg:grid-cols-2 mb-10">
+        <div className="grid gap-6 lg:grid-cols-2 mb-6">
           <WalletCard onWithdrawClick={() => setWithdrawDialogOpen(true)} />
+          <CoinShop />
+        </div>
+
+        {/* Daily Tasks */}
+        <div className="mb-10">
           <DailyTasks />
         </div>
 
