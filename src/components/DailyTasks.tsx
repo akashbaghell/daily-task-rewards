@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { CheckCircle2, Circle, Gift, Sparkles, Flame } from 'lucide-react';
+import { CheckCircle2, Circle, Gift, Sparkles, Flame, Coins } from 'lucide-react';
 
 interface DailyTask {
   id: string;
@@ -269,7 +269,7 @@ export const DailyTasks = () => {
           .eq('user_id', user.id);
       }
 
-      toast.success(`₹${task.reward_amount} claimed successfully!`);
+      toast.success(`🪙 ${task.reward_amount} coins claimed!`);
       fetchUserProgress();
     } catch (error) {
       console.error('Error claiming reward:', error);
@@ -313,8 +313,8 @@ export const DailyTasks = () => {
               <span className="text-xs text-muted-foreground">day{streak.current_streak !== 1 ? 's' : ''}</span>
             </div>
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Gift className="h-4 w-4" />
-              <span>₹{totalReward}</span>
+              <Coins className="h-4 w-4 text-yellow-500" />
+              <span className="font-medium text-yellow-600">{totalReward}</span>
             </div>
           </div>
         </div>
@@ -365,9 +365,12 @@ export const DailyTasks = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-primary">
-                  ₹{task.reward_amount}
-                </span>
+                <div className="flex items-center gap-1">
+                  <Coins className="h-4 w-4 text-yellow-500" />
+                  <span className="text-sm font-semibold text-yellow-600">
+                    {task.reward_amount}
+                  </span>
+                </div>
                 {completed && !claimed && (
                   <Button
                     size="sm"
