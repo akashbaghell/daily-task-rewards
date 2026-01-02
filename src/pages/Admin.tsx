@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { 
   Plus, Pencil, Trash2, Video, Loader2, Shield, Users, 
   IndianRupee, Eye, Clock, CheckCircle, XCircle, TrendingUp,
-  Megaphone, Image, Link, Search, Filter
+  Megaphone, Image, Link, Search, Filter, Sparkles, Power
 } from 'lucide-react';
 import {
   Dialog,
@@ -92,9 +92,21 @@ interface Stats {
   totalEarnings: number;
   pendingWithdrawals: number;
   totalAds: number;
+  totalTasks: number;
+}
+
+interface DailyTaskType {
+  id: string;
+  title: string;
+  description: string | null;
+  reward_amount: number;
+  task_type: string;
+  is_active: boolean;
+  created_at: string | null;
 }
 
 const categories = ['entertainment', 'education', 'tech', 'music'];
+const taskTypes = ['watch_video', 'watch_3_videos', 'share_video', 'daily_login', 'referral', 'streak_7'];
 
 const Admin = () => {
   const { user, loading: authLoading } = useAuth();
@@ -105,6 +117,7 @@ const Admin = () => {
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
   const [ads, setAds] = useState<AdType[]>([]);
   const [users, setUsers] = useState<UserDetails[]>([]);
+  const [dailyTasks, setDailyTasks] = useState<DailyTaskType[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
     totalVideos: 0,
@@ -112,13 +125,16 @@ const Admin = () => {
     totalEarnings: 0,
     pendingWithdrawals: 0,
     totalAds: 0,
+    totalTasks: 0,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [adDialogOpen, setAdDialogOpen] = useState(false);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [editingVideo, setEditingVideo] = useState<VideoType | null>(null);
   const [editingAd, setEditingAd] = useState<AdType | null>(null);
+  const [editingTask, setEditingTask] = useState<DailyTaskType | null>(null);
 
   // Video Form state
   const [title, setTitle] = useState('');
@@ -136,6 +152,13 @@ const Admin = () => {
   const [adDuration, setAdDuration] = useState(5);
   const [adEarnings, setAdEarnings] = useState(0.5);
   const [adIsActive, setAdIsActive] = useState(true);
+
+  // Daily Task Form state
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskDescription, setTaskDescription] = useState('');
+  const [taskReward, setTaskReward] = useState(10);
+  const [taskType, setTaskType] = useState('watch_video');
+  const [taskIsActive, setTaskIsActive] = useState(true);
 
   // User search & filter state
   const [userSearch, setUserSearch] = useState('');
@@ -184,7 +207,7 @@ const Admin = () => {
   }, [isAdmin]);
 
   const fetchData = async () => {
-    await Promise.all([fetchVideos(), fetchWithdrawals(), fetchAds(), fetchUsers(), fetchStats()]);
+    await Promise.all([fetchVideos(), fetchWithdrawals(), fetchAds(), fetchUsers(), fetchStats(), fetchDailyTasks()]);
     setLoading(false);
   };
 
@@ -302,6 +325,11 @@ const Admin = () => {
       .from('ads')
       .select('*', { count: 'exact', head: true });
 
+    // Total tasks
+    const { count: tasksCount } = await supabase
+      .from('daily_tasks')
+      .select('*', { count: 'exact', head: true });
+
     setStats({
       totalUsers: usersCount || 0,
       totalVideos: videosCount || 0,
@@ -309,7 +337,113 @@ const Admin = () => {
       totalEarnings,
       pendingWithdrawals: pendingCount || 0,
       totalAds: adsCount || 0,
+      totalTasks: tasksCount || 0,
     });
+  };
+
+  const fetchDailyTasks = async () => {
+    const { data } = await supabase
+      .from('daily_tasks')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (data) setDailyTasks(data);
+  };
+
+  const resetTaskForm = () => {
+    setTaskTitle('');
+    setTaskDescription('');
+    setTaskReward(10);
+    setTaskType('watch_video');
+    setTaskIsActive(true);
+    setEditingTask(null);
+  };
+
+  const openEditTaskDialog = (task: DailyTaskType) => {
+    setEditingTask(task);
+    setTaskTitle(task.title);
+    setTaskDescription(task.description || '');
+    setTaskReward(task.reward_amount);
+    setTaskType(task.task_type);
+    setTaskIsActive(task.is_active);
+    setTaskDialogOpen(true);
+  };
+
+  const handleTaskSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!taskTitle.trim()) {
+      toast.error('Task title is required');
+      return;
+    }
+
+    setSaving(true);
+
+    const taskData = {
+      title: taskTitle.trim(),
+      description: taskDescription.trim() || null,
+      reward_amount: taskReward,
+      task_type: taskType,
+      is_active: taskIsActive,
+    };
+
+    if (editingTask) {
+      const { error } = await supabase
+        .from('daily_tasks')
+        .update(taskData)
+        .eq('id', editingTask.id);
+
+      if (error) {
+        toast.error('Failed to update task');
+      } else {
+        toast.success('Task updated successfully');
+        setTaskDialogOpen(false);
+        resetTaskForm();
+        fetchDailyTasks();
+      }
+    } else {
+      const { error } = await supabase
+        .from('daily_tasks')
+        .insert(taskData);
+
+      if (error) {
+        toast.error('Failed to create task');
+      } else {
+        toast.success('Task created successfully');
+        setTaskDialogOpen(false);
+        resetTaskForm();
+        fetchDailyTasks();
+        fetchStats();
+      }
+    }
+
+    setSaving(false);
+  };
+
+  const handleDeleteTask = async (id: string) => {
+    const { error } = await supabase.from('daily_tasks').delete().eq('id', id);
+
+    if (error) {
+      toast.error('Failed to delete task');
+    } else {
+      toast.success('Task deleted');
+      fetchDailyTasks();
+      fetchStats();
+    }
+  };
+
+  const toggleTaskActive = async (id: string, currentStatus: boolean) => {
+    const { error } = await supabase
+      .from('daily_tasks')
+      .update({ is_active: !currentStatus })
+      .eq('id', id);
+
+    if (error) {
+      toast.error('Failed to update task');
+    } else {
+      toast.success(currentStatus ? 'Task deactivated' : 'Task activated');
+      fetchDailyTasks();
+    }
   };
 
   const resetAdForm = () => {
@@ -666,7 +800,7 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList>
+          <TabsList className="flex-wrap">
             <TabsTrigger value="users" className="gap-2">
               <Users className="h-4 w-4" />
               Users
@@ -678,6 +812,10 @@ const Admin = () => {
             <TabsTrigger value="ads" className="gap-2">
               <Megaphone className="h-4 w-4" />
               Ads
+            </TabsTrigger>
+            <TabsTrigger value="tasks" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              Tasks
             </TabsTrigger>
             <TabsTrigger value="withdrawals" className="gap-2">
               <IndianRupee className="h-4 w-4" />
@@ -1198,6 +1336,161 @@ const Admin = () => {
                         <Button variant="ghost" size="icon" onClick={() => handleDeleteAd(ad.id)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Daily Tasks Tab */}
+          <TabsContent value="tasks">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5" />
+                  Manage Daily Tasks ({dailyTasks.length})
+                </CardTitle>
+                <Dialog open={taskDialogOpen} onOpenChange={(open) => {
+                  setTaskDialogOpen(open);
+                  if (!open) resetTaskForm();
+                }}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add Task
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingTask ? 'Edit Task' : 'Add New Task'}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleTaskSubmit} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Task Title *</Label>
+                        <Input
+                          value={taskTitle}
+                          onChange={(e) => setTaskTitle(e.target.value)}
+                          placeholder="Watch 1 Video"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Description</Label>
+                        <Textarea
+                          value={taskDescription}
+                          onChange={(e) => setTaskDescription(e.target.value)}
+                          placeholder="Watch any video to complete this task"
+                          rows={2}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Task Type</Label>
+                        <Select value={taskType} onValueChange={setTaskType}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {taskTypes.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Reward Amount (₹)</Label>
+                        <Input
+                          type="number"
+                          value={taskReward}
+                          onChange={(e) => setTaskReward(Number(e.target.value))}
+                          min={1}
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="taskIsActive"
+                          checked={taskIsActive}
+                          onChange={(e) => setTaskIsActive(e.target.checked)}
+                          className="h-4 w-4"
+                        />
+                        <Label htmlFor="taskIsActive">Active</Label>
+                      </div>
+
+                      <Button type="submit" className="w-full" disabled={saving}>
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingTask ? 'Update Task' : 'Add Task'}
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {dailyTasks.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    No daily tasks yet. Add tasks to engage users!
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {dailyTasks.map((task) => (
+                      <div key={task.id} className={`flex items-center gap-4 p-4 rounded-lg border ${task.is_active ? 'bg-muted/50' : 'bg-muted/20 opacity-60'}`}>
+                        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Sparkles className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{task.title}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="capitalize">{task.task_type.replace(/_/g, ' ')}</span>
+                            <span>•</span>
+                            <span className="text-green-600 font-medium">₹{task.reward_amount}</span>
+                            {task.description && (
+                              <>
+                                <span>•</span>
+                                <span>{task.description}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <Button 
+                          variant={task.is_active ? "secondary" : "outline"} 
+                          size="sm" 
+                          onClick={() => toggleTaskActive(task.id, task.is_active)}
+                          className="gap-1"
+                        >
+                          <Power className="h-3 w-3" />
+                          {task.is_active ? 'Active' : 'Inactive'}
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEditTaskDialog(task)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Task?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete "{task.title}". This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteTask(task.id)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     ))}
                   </div>

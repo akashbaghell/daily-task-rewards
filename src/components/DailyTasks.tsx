@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { CheckCircle2, Circle, Gift, Sparkles } from 'lucide-react';
+import { CheckCircle2, Circle, Gift, Sparkles, Flame } from 'lucide-react';
 
 interface DailyTask {
   id: string;
@@ -20,6 +20,12 @@ interface UserTaskCompletion {
   reward_claimed: boolean;
 }
 
+interface UserStreak {
+  current_streak: number;
+  longest_streak: number;
+  last_login_date: string | null;
+}
+
 export const DailyTasks = () => {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<DailyTask[]>([]);
@@ -27,11 +33,13 @@ export const DailyTasks = () => {
   const [loading, setLoading] = useState(true);
   const [watchCount, setWatchCount] = useState(0);
   const [referralCount, setReferralCount] = useState(0);
+  const [streak, setStreak] = useState<UserStreak>({ current_streak: 0, longest_streak: 0, last_login_date: null });
 
   useEffect(() => {
     if (user) {
       fetchTasks();
       fetchUserProgress();
+      updateStreak();
     }
   }, [user]);
 
@@ -76,6 +84,92 @@ export const DailyTasks = () => {
     setReferralCount(refData || 0);
   };
 
+  const updateStreak = async () => {
+    if (!user) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+    // Fetch current streak data
+    const { data: streakData } = await supabase
+      .from('user_streaks')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (streakData) {
+      // User has streak record
+      if (streakData.last_login_date === today) {
+        // Already logged in today
+        setStreak({
+          current_streak: streakData.current_streak,
+          longest_streak: streakData.longest_streak,
+          last_login_date: streakData.last_login_date,
+        });
+      } else if (streakData.last_login_date === yesterday) {
+        // Consecutive login - increment streak
+        const newStreak = streakData.current_streak + 1;
+        const longestStreak = Math.max(newStreak, streakData.longest_streak);
+        
+        await supabase
+          .from('user_streaks')
+          .update({
+            current_streak: newStreak,
+            longest_streak: longestStreak,
+            last_login_date: today,
+            streak_updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', user.id);
+
+        setStreak({
+          current_streak: newStreak,
+          longest_streak: longestStreak,
+          last_login_date: today,
+        });
+
+        if (newStreak === 7) {
+          toast.success('🔥 7-Day Streak! You earned a bonus!');
+        } else if (newStreak > 1) {
+          toast.success(`🔥 ${newStreak} Day Streak!`);
+        }
+      } else {
+        // Streak broken - reset to 1
+        await supabase
+          .from('user_streaks')
+          .update({
+            current_streak: 1,
+            last_login_date: today,
+            streak_updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', user.id);
+
+        setStreak({
+          current_streak: 1,
+          longest_streak: streakData.longest_streak,
+          last_login_date: today,
+        });
+      }
+    } else {
+      // First time - create streak record
+      const { error } = await supabase
+        .from('user_streaks')
+        .insert({
+          user_id: user.id,
+          current_streak: 1,
+          longest_streak: 1,
+          last_login_date: today,
+        });
+
+      if (!error) {
+        setStreak({
+          current_streak: 1,
+          longest_streak: 1,
+          last_login_date: today,
+        });
+      }
+    }
+  };
+
   const isTaskCompleted = (task: DailyTask): boolean => {
     switch (task.task_type) {
       case 'watch_video':
@@ -86,6 +180,8 @@ export const DailyTasks = () => {
         return true; // User is logged in
       case 'referral':
         return referralCount >= 1;
+      case 'streak_7':
+        return streak.current_streak >= 7;
       default:
         return false;
     }
@@ -105,6 +201,8 @@ export const DailyTasks = () => {
         return 100;
       case 'referral':
         return referralCount >= 1 ? 100 : 0;
+      case 'streak_7':
+        return Math.min(streak.current_streak / 7 * 100, 100);
       default:
         return 0;
     }
@@ -207,15 +305,28 @@ export const DailyTasks = () => {
             <Sparkles className="h-5 w-5 text-primary" />
             Daily Tasks
           </CardTitle>
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Gift className="h-4 w-4" />
-            <span>Up to ₹{totalReward}</span>
+          <div className="flex items-center gap-3">
+            {/* Streak Badge */}
+            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-orange-500/10 border border-orange-500/30">
+              <Flame className="h-4 w-4 text-orange-500" />
+              <span className="text-sm font-bold text-orange-500">{streak.current_streak}</span>
+              <span className="text-xs text-muted-foreground">day{streak.current_streak !== 1 ? 's' : ''}</span>
+            </div>
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Gift className="h-4 w-4" />
+              <span>₹{totalReward}</span>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>{completedCount}/{tasks.length} completed</span>
           <Progress value={(completedCount / tasks.length) * 100} className="flex-1 h-1.5" />
         </div>
+        {streak.longest_streak > 1 && (
+          <p className="text-xs text-muted-foreground">
+            🏆 Best streak: {streak.longest_streak} days
+          </p>
+        )}
       </CardHeader>
       <CardContent className="space-y-3">
         {tasks.map((task) => {
