@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -13,9 +15,9 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Coins, ArrowRight, IndianRupee, Loader2, Store, Sparkles } from 'lucide-react';
+import { Coins, ArrowRight, IndianRupee, Loader2, Store, Sparkles, Award, ShoppingBag, CheckCircle } from 'lucide-react';
 
-const COINS_TO_RUPEE_RATE = 10; // 10 coins = ₹1 (1000 coins = ₹100)
+const COINS_TO_RUPEE_RATE = 10;
 const MIN_COINS_TO_CONVERT = 100;
 
 interface WalletData {
@@ -23,32 +25,48 @@ interface WalletData {
   balance: number;
 }
 
+interface Reward {
+  id: string;
+  name: string;
+  description: string | null;
+  type: string;
+  coin_price: number;
+  icon: string | null;
+}
+
+interface UserReward {
+  reward_id: string;
+}
+
 export const CoinShop = () => {
   const { user } = useAuth();
   const [wallet, setWallet] = useState<WalletData>({ coins: 0, balance: 0 });
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [userRewards, setUserRewards] = useState<UserReward[]>([]);
   const [loading, setLoading] = useState(true);
   const [converting, setConverting] = useState(false);
+  const [purchasing, setPurchasing] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [coinsToConvert, setCoinsToConvert] = useState(1000);
 
   useEffect(() => {
     if (user) {
-      fetchWallet();
+      fetchData();
     }
   }, [user]);
 
-  const fetchWallet = async () => {
+  const fetchData = async () => {
     if (!user) return;
 
-    const { data } = await supabase
-      .from('user_wallets')
-      .select('coins, balance')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const [walletRes, rewardsRes, userRewardsRes] = await Promise.all([
+      supabase.from('user_wallets').select('coins, balance').eq('user_id', user.id).maybeSingle(),
+      supabase.from('rewards').select('*').eq('is_active', true).order('coin_price'),
+      supabase.from('user_rewards').select('reward_id').eq('user_id', user.id),
+    ]);
 
-    if (data) {
-      setWallet(data);
-    }
+    if (walletRes.data) setWallet(walletRes.data);
+    if (rewardsRes.data) setRewards(rewardsRes.data);
+    if (userRewardsRes.data) setUserRewards(userRewardsRes.data);
     setLoading(false);
   };
 
@@ -80,19 +98,16 @@ export const CoinShop = () => {
     setConverting(true);
 
     try {
-      // Update wallet
       const { error: walletError } = await supabase
         .from('user_wallets')
         .update({
           coins: wallet.coins - actualCoinsUsed,
           balance: wallet.balance + rupeesToAdd,
-          total_earned: wallet.balance + rupeesToAdd,
         })
         .eq('user_id', user.id);
 
       if (walletError) throw walletError;
 
-      // Record transaction
       await supabase.from('coin_transactions').insert({
         user_id: user.id,
         amount: -actualCoinsUsed,
@@ -100,7 +115,6 @@ export const CoinShop = () => {
         description: `Converted ${actualCoinsUsed} coins to ₹${rupeesToAdd}`,
       });
 
-      // Add to earnings
       await supabase.from('earnings').insert({
         user_id: user.id,
         amount: rupeesToAdd,
@@ -109,7 +123,7 @@ export const CoinShop = () => {
 
       toast.success(`🎉 Converted ${actualCoinsUsed} coins to ₹${rupeesToAdd}!`);
       setDialogOpen(false);
-      fetchWallet();
+      fetchData();
     } catch (error) {
       console.error('Conversion error:', error);
       toast.error('Failed to convert coins');
@@ -118,6 +132,61 @@ export const CoinShop = () => {
     }
   };
 
+  const handlePurchaseReward = async (reward: Reward) => {
+    if (!user) return;
+
+    if (wallet.coins < reward.coin_price) {
+      toast.error('Not enough coins');
+      return;
+    }
+
+    if (userRewards.some(r => r.reward_id === reward.id)) {
+      toast.error('You already own this reward');
+      return;
+    }
+
+    setPurchasing(reward.id);
+
+    try {
+      // Deduct coins
+      const { error: walletError } = await supabase
+        .from('user_wallets')
+        .update({ coins: wallet.coins - reward.coin_price })
+        .eq('user_id', user.id);
+
+      if (walletError) throw walletError;
+
+      // Add user reward
+      const { error: rewardError } = await supabase
+        .from('user_rewards')
+        .insert({
+          user_id: user.id,
+          reward_id: reward.id,
+          expires_at: reward.type === 'boost' ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null,
+        });
+
+      if (rewardError) throw rewardError;
+
+      // Record transaction
+      await supabase.from('coin_transactions').insert({
+        user_id: user.id,
+        amount: -reward.coin_price,
+        type: 'spent',
+        description: `Purchased ${reward.name}`,
+      });
+
+      toast.success(`🎉 ${reward.name} purchased!`);
+      fetchData();
+    } catch (error) {
+      console.error('Purchase error:', error);
+      toast.error('Failed to purchase reward');
+    } finally {
+      setPurchasing(null);
+    }
+  };
+
+  const isOwned = (rewardId: string) => userRewards.some(r => r.reward_id === rewardId);
+
   if (loading) {
     return (
       <Card className="animate-pulse">
@@ -125,37 +194,37 @@ export const CoinShop = () => {
           <div className="h-6 w-32 bg-muted rounded" />
         </CardHeader>
         <CardContent>
-          <div className="h-24 bg-muted rounded" />
+          <div className="h-32 bg-muted rounded" />
         </CardContent>
       </Card>
     );
   }
 
+  const badges = rewards.filter(r => r.type === 'badge');
+  const features = rewards.filter(r => r.type === 'feature' || r.type === 'boost');
+
   return (
     <Card className="border-yellow-500/20 bg-gradient-to-br from-background to-yellow-500/5">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Store className="h-5 w-5 text-yellow-500" />
-          Coin Shop
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Store className="h-5 w-5 text-yellow-500" />
+            Coin Shop
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Coins className="h-4 w-4 text-yellow-500" />
+            <span className="font-bold text-yellow-500">{wallet.coins.toLocaleString()}</span>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Coin Balance */}
-        <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
-              <Coins className="h-6 w-6 text-yellow-500" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Your Coins</p>
-              <p className="text-2xl font-bold text-yellow-500">{wallet.coins.toLocaleString()}</p>
-            </div>
-          </div>
+        {/* Quick Actions */}
+        <div className="flex gap-2">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 bg-yellow-500 hover:bg-yellow-600 text-black">
-                <Sparkles className="h-4 w-4" />
-                Convert
+              <Button className="flex-1 gap-2 bg-green-600 hover:bg-green-700">
+                <IndianRupee className="h-4 w-4" />
+                Convert to ₹
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
@@ -166,7 +235,6 @@ export const CoinShop = () => {
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-6 py-4">
-                {/* Conversion Rate Info */}
                 <div className="p-3 rounded-lg bg-muted/50 text-center">
                   <p className="text-sm text-muted-foreground">Conversion Rate</p>
                   <p className="text-lg font-semibold">
@@ -176,7 +244,6 @@ export const CoinShop = () => {
                   </p>
                 </div>
 
-                {/* Input */}
                 <div className="space-y-2">
                   <Label>Coins to Convert</Label>
                   <Input
@@ -192,7 +259,6 @@ export const CoinShop = () => {
                   </p>
                 </div>
 
-                {/* Preview */}
                 <div className="flex items-center justify-between p-4 rounded-lg bg-primary/5 border">
                   <div className="flex items-center gap-2">
                     <Coins className="h-5 w-5 text-yellow-500" />
@@ -207,7 +273,6 @@ export const CoinShop = () => {
                   </div>
                 </div>
 
-                {/* Quick Select */}
                 <div className="flex gap-2 flex-wrap">
                   {[100, 500, 1000, 2000, 5000].map((amount) => (
                     <Button
@@ -229,7 +294,6 @@ export const CoinShop = () => {
                   </Button>
                 </div>
 
-                {/* Convert Button */}
                 <Button
                   className="w-full gap-2"
                   onClick={handleConvert}
@@ -244,28 +308,121 @@ export const CoinShop = () => {
                     </>
                   )}
                 </Button>
-
-                {wallet.coins < MIN_COINS_TO_CONVERT && (
-                  <p className="text-xs text-center text-muted-foreground">
-                    Complete daily tasks to earn more coins!
-                  </p>
-                )}
               </div>
             </DialogContent>
           </Dialog>
         </div>
 
-        {/* Conversion Info */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 rounded-lg bg-muted/50 text-center">
-            <p className="text-2xl font-bold text-yellow-500">10</p>
-            <p className="text-xs text-muted-foreground">coins = ₹1</p>
+        {/* Rewards Tabs */}
+        <Tabs defaultValue="badges" className="w-full">
+          <TabsList className="w-full">
+            <TabsTrigger value="badges" className="flex-1 gap-1">
+              <Award className="h-4 w-4" />
+              Badges
+            </TabsTrigger>
+            <TabsTrigger value="features" className="flex-1 gap-1">
+              <ShoppingBag className="h-4 w-4" />
+              Features
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="badges" className="mt-3 space-y-2">
+            {badges.map((reward) => (
+              <div
+                key={reward.id}
+                className={`flex items-center gap-3 p-3 rounded-lg border ${
+                  isOwned(reward.id) ? 'bg-green-500/10 border-green-500/30' : 'bg-muted/30'
+                }`}
+              >
+                <span className="text-2xl">{reward.icon}</span>
+                <div className="flex-1">
+                  <p className="font-medium text-sm">{reward.name}</p>
+                  <p className="text-xs text-muted-foreground">{reward.description}</p>
+                </div>
+                {isOwned(reward.id) ? (
+                  <Badge variant="secondary" className="gap-1 bg-green-500/20 text-green-500">
+                    <CheckCircle className="h-3 w-3" />
+                    Owned
+                  </Badge>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlePurchaseReward(reward)}
+                    disabled={purchasing === reward.id || wallet.coins < reward.coin_price}
+                    className="gap-1"
+                  >
+                    {purchasing === reward.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <>
+                        <Coins className="h-3 w-3 text-yellow-500" />
+                        {reward.coin_price}
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            ))}
+          </TabsContent>
+
+          <TabsContent value="features" className="mt-3 space-y-2">
+            {features.map((reward) => (
+              <div
+                key={reward.id}
+                className={`flex items-center gap-3 p-3 rounded-lg border ${
+                  isOwned(reward.id) ? 'bg-green-500/10 border-green-500/30' : 'bg-muted/30'
+                }`}
+              >
+                <span className="text-2xl">{reward.icon}</span>
+                <div className="flex-1">
+                  <p className="font-medium text-sm">{reward.name}</p>
+                  <p className="text-xs text-muted-foreground">{reward.description}</p>
+                </div>
+                {isOwned(reward.id) ? (
+                  <Badge variant="secondary" className="gap-1 bg-green-500/20 text-green-500">
+                    <CheckCircle className="h-3 w-3" />
+                    {reward.type === 'boost' ? 'Active' : 'Owned'}
+                  </Badge>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlePurchaseReward(reward)}
+                    disabled={purchasing === reward.id || wallet.coins < reward.coin_price}
+                    className="gap-1"
+                  >
+                    {purchasing === reward.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <>
+                        <Coins className="h-3 w-3 text-yellow-500" />
+                        {reward.coin_price}
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            ))}
+          </TabsContent>
+        </Tabs>
+
+        {/* My Badges */}
+        {userRewards.length > 0 && (
+          <div className="pt-2 border-t">
+            <p className="text-xs text-muted-foreground mb-2">My Badges</p>
+            <div className="flex flex-wrap gap-1">
+              {userRewards.map((ur) => {
+                const reward = rewards.find(r => r.id === ur.reward_id);
+                return reward ? (
+                  <span key={ur.reward_id} className="text-lg" title={reward.name}>
+                    {reward.icon}
+                  </span>
+                ) : null;
+              })}
+            </div>
           </div>
-          <div className="p-3 rounded-lg bg-muted/50 text-center">
-            <p className="text-2xl font-bold text-green-500">₹{calculateRupees(wallet.coins)}</p>
-            <p className="text-xs text-muted-foreground">convertible</p>
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

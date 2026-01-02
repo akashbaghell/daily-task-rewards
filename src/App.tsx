@@ -16,6 +16,7 @@ import Admin from "./pages/Admin";
 import Wallet from "./pages/Wallet";
 import Upload from "./pages/Upload";
 import CreatorDashboard from "./pages/CreatorDashboard";
+import Transactions from "./pages/Transactions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/wallet" element={<Wallet />} />
               <Route path="/upload" element={<Upload />} />
               <Route path="/creator" element={<CreatorDashboard />} />
+              <Route path="/transactions" element={<Transactions />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
