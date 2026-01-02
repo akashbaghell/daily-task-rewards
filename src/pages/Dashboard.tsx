@@ -6,11 +6,12 @@ import { Navbar } from '@/components/Navbar';
 import { VideoCard } from '@/components/VideoCard';
 import { WalletCard } from '@/components/WalletCard';
 import { WithdrawalDialog } from '@/components/WithdrawalDialog';
+import { DailyTasks } from '@/components/DailyTasks';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Video, Users, Copy, ExternalLink, Wallet } from 'lucide-react';
+import { Video, Users, Copy, ExternalLink } from 'lucide-react';
 
 interface VideoType {
   id: string;
@@ -135,9 +136,10 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {/* Wallet Card */}
-        <div className="mb-10">
+        {/* Wallet & Daily Tasks */}
+        <div className="grid gap-6 lg:grid-cols-2 mb-10">
           <WalletCard onWithdrawClick={() => setWithdrawDialogOpen(true)} />
+          <DailyTasks />
         </div>
 
         {/* Stats Cards */}

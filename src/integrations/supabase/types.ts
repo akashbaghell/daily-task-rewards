@@ -149,6 +149,36 @@ export type Database = {
           },
         ]
       }
+      daily_tasks: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          reward_amount: number
+          task_type: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          reward_amount?: number
+          task_type?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          reward_amount?: number
+          task_type?: string
+          title?: string
+        }
+        Relationships: []
+      }
       earnings: {
         Row: {
           amount: number
@@ -249,6 +279,41 @@ export type Database = {
             columns: ["referrer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_daily_tasks: {
+        Row: {
+          completed_at: string
+          date: string
+          id: string
+          reward_claimed: boolean | null
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          date?: string
+          id?: string
+          reward_claimed?: boolean | null
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          date?: string
+          id?: string
+          reward_claimed?: boolean | null
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_daily_tasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "daily_tasks"
             referencedColumns: ["id"]
           },
         ]
