@@ -6,13 +6,16 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Play, Loader2, Globe } from 'lucide-react';
+import { Play, Loader2, Globe, ArrowLeft } from 'lucide-react';
 import { z } from 'zod';
 
 const emailSchema = z.string().email('Invalid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
 const nameSchema = z.string().min(2, 'Name must be at least 2 characters');
+
+type AuthMode = 'login' | 'signup' | 'forgot-password';
 
 const Auth = () => {
   const { t, language, toggleLanguage } = useLanguage();
@@ -20,7 +23,9 @@ const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [isSignUp, setIsSignUp] = useState(searchParams.get('mode') === 'signup');
+  const [mode, setMode] = useState<AuthMode>(
+    searchParams.get('mode') === 'signup' ? 'signup' : 'login'
+  );
   const [loading, setLoading] = useState(false);
 
   const [email, setEmail] = useState('');
@@ -55,7 +60,7 @@ const Auth = () => {
       }
     }
 
-    if (isSignUp) {
+    if (mode === 'signup') {
       try {
         nameSchema.parse(fullName);
       } catch (e) {
@@ -77,7 +82,7 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      if (isSignUp) {
+      if (mode === 'signup') {
         const { error } = await signUp(email, password, fullName, referralCode || undefined);
         if (error) {
           if (error.message.includes('already registered')) {
@@ -107,6 +112,34 @@ const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      emailSchema.parse(email);
+    } catch {
+      setErrors({ email: 'Please enter a valid email address' });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth?mode=reset`,
+      });
+
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success('Password reset link sent to your email!');
+        setMode('login');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
@@ -129,112 +162,172 @@ const Auth = () => {
       <main className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md animate-scale-in">
           <CardHeader className="text-center">
-            <CardTitle className="font-display text-2xl">
-              {isSignUp ? t('auth.createAccount') : t('auth.welcomeBack')}
-            </CardTitle>
-            <CardDescription>
-              {isSignUp
-                ? 'Create your account to start watching'
-                : 'Sign in to continue watching'}
-            </CardDescription>
+            {mode === 'forgot-password' ? (
+              <>
+                <CardTitle className="font-display text-2xl">Reset Password</CardTitle>
+                <CardDescription>
+                  Enter your email and we'll send you a reset link
+                </CardDescription>
+              </>
+            ) : (
+              <>
+                <CardTitle className="font-display text-2xl">
+                  {mode === 'signup' ? t('auth.createAccount') : t('auth.welcomeBack')}
+                </CardTitle>
+                <CardDescription>
+                  {mode === 'signup'
+                    ? 'Create your account to start watching'
+                    : 'Sign in to continue watching'}
+                </CardDescription>
+              </>
+            )}
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {isSignUp && (
+            {mode === 'forgot-password' ? (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">{t('auth.name')}</Label>
+                  <Label htmlFor="email">{t('auth.email')}</Label>
                   <Input
-                    id="fullName"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="John Doe"
-                    className={errors.fullName ? 'border-destructive' : ''}
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className={errors.email ? 'border-destructive' : ''}
                   />
-                  {errors.fullName && (
-                    <p className="text-xs text-destructive">{errors.fullName}</p>
+                  {errors.email && (
+                    <p className="text-xs text-destructive">{errors.email}</p>
                   )}
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <Label htmlFor="email">{t('auth.email')}</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className={errors.email ? 'border-destructive' : ''}
-                />
-                {errors.email && (
-                  <p className="text-xs text-destructive">{errors.email}</p>
-                )}
-              </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    'Send Reset Link'
+                  )}
+                </Button>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">{t('auth.password')}</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className={errors.password ? 'border-destructive' : ''}
-                />
-                {errors.password && (
-                  <p className="text-xs text-destructive">{errors.password}</p>
-                )}
-              </div>
+                <button
+                  type="button"
+                  onClick={() => setMode('login')}
+                  className="flex items-center justify-center gap-1 w-full text-sm text-muted-foreground hover:text-primary"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Login
+                </button>
+              </form>
+            ) : (
+              <>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {mode === 'signup' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">{t('auth.name')}</Label>
+                      <Input
+                        id="fullName"
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="John Doe"
+                        className={errors.fullName ? 'border-destructive' : ''}
+                      />
+                      {errors.fullName && (
+                        <p className="text-xs text-destructive">{errors.fullName}</p>
+                      )}
+                    </div>
+                  )}
 
-              {isSignUp && (
-                <div className="space-y-2">
-                  <Label htmlFor="referralCode">{t('auth.referralCode')}</Label>
-                  <Input
-                    id="referralCode"
-                    type="text"
-                    value={referralCode}
-                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                    placeholder="ABC12345"
-                    maxLength={8}
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="email">{t('auth.email')}</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className={errors.email ? 'border-destructive' : ''}
+                    />
+                    {errors.email && (
+                      <p className="text-xs text-destructive">{errors.email}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password">{t('auth.password')}</Label>
+                      {mode === 'login' && (
+                        <button
+                          type="button"
+                          onClick={() => setMode('forgot-password')}
+                          className="text-xs text-primary hover:underline"
+                        >
+                          Forgot password?
+                        </button>
+                      )}
+                    </div>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className={errors.password ? 'border-destructive' : ''}
+                    />
+                    {errors.password && (
+                      <p className="text-xs text-destructive">{errors.password}</p>
+                    )}
+                  </div>
+
+                  {mode === 'signup' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="referralCode">{t('auth.referralCode')}</Label>
+                      <Input
+                        id="referralCode"
+                        type="text"
+                        value={referralCode}
+                        onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                        placeholder="ABC12345"
+                        maxLength={8}
+                      />
+                    </div>
+                  )}
+
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : mode === 'signup' ? (
+                      t('auth.signup')
+                    ) : (
+                      t('auth.login')
+                    )}
+                  </Button>
+                </form>
+
+                <div className="mt-6 text-center text-sm">
+                  {mode === 'signup' ? (
+                    <p className="text-muted-foreground">
+                      {t('auth.haveAccount')}{' '}
+                      <button
+                        onClick={() => setMode('login')}
+                        className="text-primary hover:underline font-medium"
+                      >
+                        {t('nav.login')}
+                      </button>
+                    </p>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      {t('auth.noAccount')}{' '}
+                      <button
+                        onClick={() => setMode('signup')}
+                        className="text-primary hover:underline font-medium"
+                      >
+                        {t('nav.signup')}
+                      </button>
+                    </p>
+                  )}
                 </div>
-              )}
-
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : isSignUp ? (
-                  t('auth.signup')
-                ) : (
-                  t('auth.login')
-                )}
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center text-sm">
-              {isSignUp ? (
-                <p className="text-muted-foreground">
-                  {t('auth.haveAccount')}{' '}
-                  <button
-                    onClick={() => setIsSignUp(false)}
-                    className="text-primary hover:underline font-medium"
-                  >
-                    {t('nav.login')}
-                  </button>
-                </p>
-              ) : (
-                <p className="text-muted-foreground">
-                  {t('auth.noAccount')}{' '}
-                  <button
-                    onClick={() => setIsSignUp(true)}
-                    className="text-primary hover:underline font-medium"
-                  >
-                    {t('nav.signup')}
-                  </button>
-                </p>
-              )}
-            </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </main>
