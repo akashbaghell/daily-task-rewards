@@ -51,6 +51,7 @@ const Index = () => {
       titleHi: 'वीडियो देखें',
       desc: 'Browse and watch amazing content',
       descHi: 'शानदार कंटेंट ब्राउज़ करें',
+      link: '/videos',
     },
     {
       icon: Users,
@@ -58,6 +59,7 @@ const Index = () => {
       titleHi: 'दोस्तों को रेफर करें',
       desc: 'Share your unique link',
       descHi: 'अपना यूनिक लिंक शेयर करें',
+      link: '/auth?mode=signup',
     },
     {
       icon: Sparkles,
@@ -65,6 +67,7 @@ const Index = () => {
       titleHi: 'नेटवर्क बढ़ाएं',
       desc: 'Build your community',
       descHi: 'अपनी कम्युनिटी बनाएं',
+      link: '/auth?mode=signup',
     },
   ];
 
@@ -109,9 +112,10 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="grid gap-8 md:grid-cols-3">
             {features.map((feature, index) => (
-              <div
+              <Link
                 key={index}
-                className="group rounded-2xl border border-border bg-card p-6 text-center transition-all hover:border-primary/20 hover:shadow-lg animate-fade-in"
+                to={feature.link}
+                className="group rounded-2xl border border-border bg-card p-6 text-center transition-all hover:border-primary/20 hover:shadow-lg animate-fade-in cursor-pointer"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
@@ -121,7 +125,7 @@ const Index = () => {
                   {feature.title}
                 </h3>
                 <p className="text-sm text-muted-foreground">{feature.desc}</p>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
