@@ -274,6 +274,63 @@ export type Database = {
           },
         ]
       }
+      referral_milestones: {
+        Row: {
+          achieved_at: string
+          bonus_coins: number
+          id: string
+          milestone: number
+          referred_id: string
+          referrer_id: string
+        }
+        Insert: {
+          achieved_at?: string
+          bonus_coins: number
+          id?: string
+          milestone: number
+          referred_id: string
+          referrer_id: string
+        }
+        Update: {
+          achieved_at?: string
+          bonus_coins?: number
+          id?: string
+          milestone?: number
+          referred_id?: string
+          referrer_id?: string
+        }
+        Relationships: []
+      }
+      referral_task_completions: {
+        Row: {
+          coins_earned: number
+          created_at: string
+          id: string
+          referred_id: string
+          referrer_id: string
+          task_id: string
+          task_title: string
+        }
+        Insert: {
+          coins_earned?: number
+          created_at?: string
+          id?: string
+          referred_id: string
+          referrer_id: string
+          task_id: string
+          task_title: string
+        }
+        Update: {
+          coins_earned?: number
+          created_at?: string
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+          task_id?: string
+          task_title?: string
+        }
+        Relationships: []
+      }
       referrals: {
         Row: {
           created_at: string | null
