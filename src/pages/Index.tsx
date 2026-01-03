@@ -52,6 +52,7 @@ const Index = () => {
       desc: 'Browse and watch amazing content',
       descHi: 'शानदार कंटेंट ब्राउज़ करें',
       link: '/videos',
+      authLink: '/videos',
     },
     {
       icon: Users,
@@ -60,6 +61,7 @@ const Index = () => {
       desc: 'Share your unique link',
       descHi: 'अपना यूनिक लिंक शेयर करें',
       link: '/auth?mode=signup',
+      authLink: '/referrals',
     },
     {
       icon: Sparkles,
@@ -68,6 +70,7 @@ const Index = () => {
       desc: 'Build your community',
       descHi: 'अपनी कम्युनिटी बनाएं',
       link: '/auth?mode=signup',
+      authLink: '/dashboard',
     },
   ];
 
@@ -114,17 +117,24 @@ const Index = () => {
             {features.map((feature, index) => (
               <Link
                 key={index}
-                to={feature.link}
-                className="group rounded-2xl border border-border bg-card p-6 text-center transition-all hover:border-primary/20 hover:shadow-lg animate-fade-in cursor-pointer"
-                style={{ animationDelay: `${index * 100}ms` }}
+                to={user ? feature.authLink : feature.link}
+                className="group relative rounded-2xl border border-border bg-card p-6 text-center transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:-translate-y-2 animate-fade-in cursor-pointer overflow-hidden"
+                style={{ animationDelay: `${index * 150}ms` }}
               >
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                  <feature.icon className="h-6 w-6" />
+                {/* Gradient overlay on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                
+                <div className="relative z-10">
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-110 group-hover:rotate-3">
+                    <feature.icon className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
+                  </div>
+                  <h3 className="mb-2 font-display text-lg font-semibold transition-colors duration-300 group-hover:text-primary">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground transition-colors duration-300 group-hover:text-foreground/80">
+                    {feature.desc}
+                  </p>
                 </div>
-                <h3 className="mb-2 font-display text-lg font-semibold">
-                  {feature.title}
-                </h3>
-                <p className="text-sm text-muted-foreground">{feature.desc}</p>
               </Link>
             ))}
           </div>
