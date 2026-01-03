@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { CheckCircle2, Circle, Gift, Sparkles, Flame, Coins } from 'lucide-react';
+import { triggerCoinShower } from '@/lib/confetti';
 
 interface DailyTask {
   id: string;
@@ -272,6 +273,7 @@ export const DailyTasks = () => {
         });
       }
 
+      triggerCoinShower();
       toast.success(`🪙 ${task.reward_amount} coins claimed!`);
       fetchUserProgress();
     } catch (error) {

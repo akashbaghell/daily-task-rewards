@@ -9,6 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Share2, IndianRupee, CheckCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { triggerRewardConfetti } from '@/lib/confetti';
 
 interface VideoType {
   id: string;
@@ -200,6 +201,7 @@ const Watch = () => {
         if (earned === true) {
           setEarnedReward(true);
           setCanEarn(false);
+          triggerRewardConfetti();
           toast.success('₹20 earned for watching this video!', {
             icon: <IndianRupee className="h-4 w-4 text-green-500" />,
           });
