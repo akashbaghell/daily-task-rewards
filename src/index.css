@@ -119,3 +119,70 @@
     @apply bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent;
   }
 }
+
+/* Sparkle animation for feature cards */
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(180deg);
+  }
+}
+
+@keyframes float-up {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.5);
+  }
+}
+
+@keyframes slide-up-fade {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up-fade {
+  animation: slide-up-fade 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+.sparkle-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sparkle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: hsl(var(--primary));
+  border-radius: 50%;
+  opacity: 0;
+  box-shadow: 0 0 6px 2px hsl(var(--primary) / 0.5);
+}
+
+.group:hover .sparkle {
+  animation: sparkle 0.8s ease-in-out infinite;
+}
+
+.sparkle:nth-child(1) { top: 20%; left: 15%; animation-delay: 0s; }
+.sparkle:nth-child(2) { top: 30%; right: 20%; animation-delay: 0.15s; }
+.sparkle:nth-child(3) { bottom: 25%; left: 25%; animation-delay: 0.3s; }
+.sparkle:nth-child(4) { bottom: 35%; right: 15%; animation-delay: 0.45s; }
+.sparkle:nth-child(5) { top: 50%; left: 10%; animation-delay: 0.6s; }
+.sparkle:nth-child(6) { top: 15%; right: 30%; animation-delay: 0.2s; }
