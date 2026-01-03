@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { CheckCircle2, Circle, Gift, Sparkles, Flame, Coins } from 'lucide-react';
 import { triggerCoinShower } from '@/lib/confetti';
+import { playCoinSound, playStreakSound } from '@/lib/sounds';
 
 interface DailyTask {
   id: string;
@@ -129,6 +130,7 @@ export const DailyTasks = () => {
         });
 
         if (newStreak === 7) {
+          playStreakSound();
           toast.success('🔥 7-Day Streak! You earned a bonus!');
         } else if (newStreak > 1) {
           toast.success(`🔥 ${newStreak} Day Streak!`);
@@ -274,6 +276,7 @@ export const DailyTasks = () => {
       }
 
       triggerCoinShower();
+      playCoinSound();
       toast.success(`🪙 ${task.reward_amount} coins claimed!`);
       fetchUserProgress();
     } catch (error) {
