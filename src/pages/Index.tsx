@@ -118,9 +118,19 @@ const Index = () => {
               <Link
                 key={index}
                 to={user ? feature.authLink : feature.link}
-                className="group relative rounded-2xl border border-border bg-card p-6 text-center transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:-translate-y-2 animate-fade-in cursor-pointer overflow-hidden"
+                className="group relative rounded-2xl border border-border bg-card p-6 text-center transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:-translate-y-2 animate-slide-up-fade cursor-pointer overflow-hidden"
                 style={{ animationDelay: `${index * 150}ms` }}
               >
+                {/* Sparkle particles */}
+                <div className="sparkle-container">
+                  <div className="sparkle" />
+                  <div className="sparkle" />
+                  <div className="sparkle" />
+                  <div className="sparkle" />
+                  <div className="sparkle" />
+                  <div className="sparkle" />
+                </div>
+                
                 {/* Gradient overlay on hover */}
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 
