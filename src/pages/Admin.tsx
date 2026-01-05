@@ -856,10 +856,10 @@ const Admin = () => {
     }
   };
 
-  const handleWithdrawalAction = async (id: string, action: 'approved' | 'rejected', userId: string, amount: number) => {
-    const updateData: { status: string; processed_at: string; admin_notes?: string } = {
+  const handleWithdrawalAction = async (id: string, action: 'approved' | 'rejected' | 'processing', userId: string, amount: number) => {
+    const updateData: { status: string; processed_at: string | null; admin_notes?: string } = {
       status: action,
-      processed_at: new Date().toISOString(),
+      processed_at: action === 'approved' || action === 'rejected' ? new Date().toISOString() : null,
     };
 
     const { error } = await supabase
@@ -881,7 +881,13 @@ const Admin = () => {
       });
     }
 
-    toast.success(`Withdrawal ${action}!`);
+    const statusMessages = {
+      approved: 'Withdrawal approved successfully!',
+      rejected: 'Withdrawal rejected!',
+      processing: 'Withdrawal marked as processing'
+    };
+
+    toast.success(statusMessages[action]);
     fetchWithdrawals();
     fetchStats();
   };
@@ -1335,44 +1341,59 @@ const Admin = () => {
                             ? 'border-yellow-500/50 bg-yellow-500/5' 
                             : withdrawal.status === 'approved'
                             ? 'border-green-500/50 bg-green-500/5'
+                            : withdrawal.status === 'processing'
+                            ? 'border-blue-500/50 bg-blue-500/5'
                             : 'border-red-500/50 bg-red-500/5'
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
+                        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                          <div className="space-y-2 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-bold text-lg">₹{withdrawal.amount}</span>
                               <span className={`px-2 py-0.5 text-xs rounded-full capitalize ${
                                 withdrawal.status === 'pending'
                                   ? 'bg-yellow-500/20 text-yellow-600'
                                   : withdrawal.status === 'approved'
                                   ? 'bg-green-500/20 text-green-600'
+                                  : withdrawal.status === 'processing'
+                                  ? 'bg-blue-500/20 text-blue-600'
                                   : 'bg-red-500/20 text-red-600'
                               }`}>
                                 {withdrawal.status}
                               </span>
                             </div>
-                            <div className="text-sm space-y-1">
-                              <p><strong>User ID:</strong> {withdrawal.user_id.slice(0, 8)}...</p>
+                            <div className="text-sm space-y-1 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                              <p><strong>User ID:</strong> <span className="font-mono text-xs">{withdrawal.user_id.slice(0, 12)}...</span></p>
                               <p><strong>Bank:</strong> {withdrawal.bank_name}</p>
-                              <p><strong>Account:</strong> {withdrawal.account_number}</p>
-                              <p><strong>IFSC:</strong> {withdrawal.ifsc_code}</p>
-                              <p><strong>Name:</strong> {withdrawal.account_holder_name}</p>
+                              <p><strong>Account:</strong> <span className="font-mono">{withdrawal.account_number}</span></p>
+                              <p><strong>IFSC:</strong> <span className="font-mono">{withdrawal.ifsc_code}</span></p>
+                              <p><strong>Account Holder:</strong> {withdrawal.account_holder_name}</p>
                               <p className="text-muted-foreground text-xs">
-                                {new Date(withdrawal.created_at).toLocaleString('en-IN')}
+                                <strong>Requested:</strong> {new Date(withdrawal.created_at).toLocaleString('en-IN')}
                               </p>
                             </div>
                           </div>
 
-                          {withdrawal.status === 'pending' && (
-                            <div className="flex flex-col gap-2">
+                          {(withdrawal.status === 'pending' || withdrawal.status === 'processing') && (
+                            <div className="flex flex-row sm:flex-col gap-2 flex-wrap">
+                              {withdrawal.status === 'pending' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1 border-blue-500 text-blue-600 hover:bg-blue-500/10"
+                                  onClick={() => handleWithdrawalAction(withdrawal.id, 'processing', withdrawal.user_id, withdrawal.amount)}
+                                >
+                                  <Clock className="h-4 w-4" />
+                                  Processing
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 className="gap-1 bg-green-600 hover:bg-green-700"
                                 onClick={() => handleWithdrawalAction(withdrawal.id, 'approved', withdrawal.user_id, withdrawal.amount)}
                               >
                                 <CheckCircle className="h-4 w-4" />
-                                Approve
+                                {withdrawal.status === 'processing' ? 'Complete' : 'Approve'}
                               </Button>
                               <Button
                                 size="sm"
