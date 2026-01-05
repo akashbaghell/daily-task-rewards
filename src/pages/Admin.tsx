@@ -917,74 +917,74 @@ const Admin = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-6 mb-8">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 mb-8">
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <Users className="h-8 w-8 text-blue-500" />
-                <div>
-                  <p className="text-2xl font-bold">{stats.totalUsers}</p>
-                  <p className="text-xs text-muted-foreground">Total Users</p>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Users className="h-6 w-6 text-blue-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xl font-bold truncate">{stats.totalUsers}</p>
+                  <p className="text-[10px] text-muted-foreground">Users</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <Video className="h-8 w-8 text-purple-500" />
-                <div>
-                  <p className="text-2xl font-bold">{stats.totalVideos}</p>
-                  <p className="text-xs text-muted-foreground">Total Videos</p>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Video className="h-6 w-6 text-purple-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xl font-bold truncate">{stats.totalVideos}</p>
+                  <p className="text-[10px] text-muted-foreground">Videos</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <Eye className="h-8 w-8 text-green-500" />
-                <div>
-                  <p className="text-2xl font-bold">{stats.totalViews}</p>
-                  <p className="text-xs text-muted-foreground">Total Views</p>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Eye className="h-6 w-6 text-green-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xl font-bold truncate">{stats.totalViews}</p>
+                  <p className="text-[10px] text-muted-foreground">Views</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <TrendingUp className="h-8 w-8 text-orange-500" />
-                <div>
-                  <p className="text-2xl font-bold">₹{stats.totalEarnings}</p>
-                  <p className="text-xs text-muted-foreground">Earnings Given</p>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-6 w-6 text-orange-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xl font-bold truncate">₹{stats.totalEarnings}</p>
+                  <p className="text-[10px] text-muted-foreground">Earnings</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Card className={stats.pendingWithdrawals > 0 ? 'border-yellow-500/50' : ''}>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <Clock className="h-8 w-8 text-yellow-500" />
-                <div>
-                  <p className="text-2xl font-bold">{stats.pendingWithdrawals}</p>
-                  <p className="text-xs text-muted-foreground">Pending Withdrawals</p>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Clock className="h-6 w-6 text-yellow-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xl font-bold truncate">{stats.pendingWithdrawals}</p>
+                  <p className="text-[10px] text-muted-foreground">Pending</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <Megaphone className="h-8 w-8 text-pink-500" />
-                <div>
-                  <p className="text-2xl font-bold">{stats.totalAds}</p>
-                  <p className="text-xs text-muted-foreground">Active Ads</p>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Megaphone className="h-6 w-6 text-pink-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xl font-bold truncate">{stats.totalAds}</p>
+                  <p className="text-[10px] text-muted-foreground">Ads</p>
                 </div>
               </div>
             </CardContent>
@@ -992,36 +992,36 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="flex-wrap">
-            <TabsTrigger value="users" className="gap-2">
-              <Users className="h-4 w-4" />
-              Users
+          <TabsList className="flex flex-wrap h-auto gap-1 p-1">
+            <TabsTrigger value="users" className="gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Users</span>
             </TabsTrigger>
-            <TabsTrigger value="videos" className="gap-2">
-              <Video className="h-4 w-4" />
-              Videos
+            <TabsTrigger value="videos" className="gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Video className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Videos</span>
             </TabsTrigger>
-            <TabsTrigger value="ads" className="gap-2">
-              <Megaphone className="h-4 w-4" />
-              Ads
+            <TabsTrigger value="ads" className="gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Megaphone className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Ads</span>
             </TabsTrigger>
-            <TabsTrigger value="tasks" className="gap-2">
-              <Sparkles className="h-4 w-4" />
-              Tasks
+            <TabsTrigger value="tasks" className="gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Tasks</span>
             </TabsTrigger>
-            <TabsTrigger value="rewards" className="gap-2">
-              <Award className="h-4 w-4" />
-              Rewards
+            <TabsTrigger value="rewards" className="gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Award className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Rewards</span>
             </TabsTrigger>
-            <TabsTrigger value="transactions" className="gap-2">
-              <Coins className="h-4 w-4" />
-              Coins
+            <TabsTrigger value="transactions" className="gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Coins className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Coins</span>
             </TabsTrigger>
-            <TabsTrigger value="withdrawals" className="gap-2">
-              <IndianRupee className="h-4 w-4" />
-              Withdrawals
+            <TabsTrigger value="withdrawals" className="gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <IndianRupee className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Withdrawals</span>
               {stats.pendingWithdrawals > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-xs bg-yellow-500 text-white rounded-full">
+                <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-yellow-500 text-white rounded-full">
                   {stats.pendingWithdrawals}
                 </span>
               )}
