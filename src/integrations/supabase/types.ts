@@ -400,6 +400,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_bank_details: {
+        Row: {
+          account_holder_name: string
+          account_number: string
+          bank_name: string
+          created_at: string
+          id: string
+          ifsc_code: string
+          is_primary: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_holder_name: string
+          account_number: string
+          bank_name: string
+          created_at?: string
+          id?: string
+          ifsc_code: string
+          is_primary?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_holder_name?: string
+          account_number?: string
+          bank_name?: string
+          created_at?: string
+          id?: string
+          ifsc_code?: string
+          is_primary?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_daily_tasks: {
         Row: {
           completed_at: string
