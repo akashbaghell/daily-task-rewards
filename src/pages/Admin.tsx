@@ -161,6 +161,9 @@ const Admin = () => {
   const [adDialogOpen, setAdDialogOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [rewardDialogOpen, setRewardDialogOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectingWithdrawal, setRejectingWithdrawal] = useState<WithdrawalRequest | null>(null);
+  const [rejectNotes, setRejectNotes] = useState('');
   const [editingVideo, setEditingVideo] = useState<VideoType | null>(null);
   const [editingAd, setEditingAd] = useState<AdType | null>(null);
   const [editingTask, setEditingTask] = useState<DailyTaskType | null>(null);
@@ -856,10 +859,11 @@ const Admin = () => {
     }
   };
 
-  const handleWithdrawalAction = async (id: string, action: 'approved' | 'rejected' | 'processing', userId: string, amount: number) => {
-    const updateData: { status: string; processed_at: string | null; admin_notes?: string } = {
+  const handleWithdrawalAction = async (id: string, action: 'approved' | 'rejected' | 'processing', userId: string, amount: number, notes?: string) => {
+    const updateData: { status: string; processed_at: string | null; admin_notes?: string | null } = {
       status: action,
       processed_at: action === 'approved' || action === 'rejected' ? new Date().toISOString() : null,
+      admin_notes: notes || null,
     };
 
     const { error } = await supabase
@@ -890,6 +894,28 @@ const Admin = () => {
     toast.success(statusMessages[action]);
     fetchWithdrawals();
     fetchStats();
+  };
+
+  const openRejectDialog = (withdrawal: WithdrawalRequest) => {
+    setRejectingWithdrawal(withdrawal);
+    setRejectNotes('');
+    setRejectDialogOpen(true);
+  };
+
+  const handleRejectWithNotes = async () => {
+    if (!rejectingWithdrawal) return;
+    
+    await handleWithdrawalAction(
+      rejectingWithdrawal.id, 
+      'rejected', 
+      rejectingWithdrawal.user_id, 
+      rejectingWithdrawal.amount,
+      rejectNotes
+    );
+    
+    setRejectDialogOpen(false);
+    setRejectingWithdrawal(null);
+    setRejectNotes('');
   };
 
   if (authLoading || adminLoading || loading) {
@@ -1372,6 +1398,11 @@ const Admin = () => {
                                 <strong>Requested:</strong> {new Date(withdrawal.created_at).toLocaleString('en-IN')}
                               </p>
                             </div>
+                            {withdrawal.admin_notes && (
+                              <div className="col-span-full mt-2 p-2 bg-muted rounded text-sm">
+                                <strong>Admin Notes:</strong> {withdrawal.admin_notes}
+                              </div>
+                            )}
                           </div>
 
                           {(withdrawal.status === 'pending' || withdrawal.status === 'processing') && (
@@ -1399,7 +1430,7 @@ const Admin = () => {
                                 size="sm"
                                 variant="destructive"
                                 className="gap-1"
-                                onClick={() => handleWithdrawalAction(withdrawal.id, 'rejected', withdrawal.user_id, withdrawal.amount)}
+                                onClick={() => openRejectDialog(withdrawal)}
                               >
                                 <XCircle className="h-4 w-4" />
                                 Reject
@@ -1413,6 +1444,41 @@ const Admin = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Reject Dialog */}
+            <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-destructive">
+                    <XCircle className="h-5 w-5" />
+                    Reject Withdrawal
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Rejecting withdrawal of <strong>₹{rejectingWithdrawal?.amount}</strong>
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="rejectNotes">Reason for rejection (optional)</Label>
+                    <Textarea
+                      id="rejectNotes"
+                      value={rejectNotes}
+                      onChange={(e) => setRejectNotes(e.target.value)}
+                      placeholder="e.g. Invalid bank details, insufficient balance verification needed..."
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button variant="destructive" onClick={handleRejectWithNotes}>
+                      Reject Withdrawal
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           {/* Ads Tab */}

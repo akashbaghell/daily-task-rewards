@@ -19,6 +19,7 @@ interface WithdrawalRequest {
   id: string;
   amount: number;
   status: string;
+  admin_notes: string | null;
   created_at: string;
 }
 
@@ -74,7 +75,7 @@ const WalletPage = () => {
       // Fetch withdrawal requests
       const { data: withdrawalsData } = await supabase
         .from('withdrawal_requests')
-        .select('id, amount, status, created_at')
+        .select('id, amount, status, admin_notes, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -218,27 +219,34 @@ const WalletPage = () => {
                 {withdrawals.map((withdrawal) => (
                   <div
                     key={withdrawal.id}
-                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                    className="p-3 bg-muted/50 rounded-lg"
                   >
-                    <div className="flex items-center gap-3">
-                      {getStatusIcon(withdrawal.status)}
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm">{getStatusText(withdrawal.status)}</p>
-                          <span className={`px-2 py-0.5 text-xs rounded-full ${getStatusBadgeClass(withdrawal.status)}`}>
-                            {withdrawal.status}
-                          </span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {getStatusIcon(withdrawal.status)}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm">{getStatusText(withdrawal.status)}</p>
+                            <span className={`px-2 py-0.5 text-xs rounded-full ${getStatusBadgeClass(withdrawal.status)}`}>
+                              {withdrawal.status}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(withdrawal.created_at).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric'
+                            })}
+                          </p>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(withdrawal.created_at).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          })}
-                        </p>
                       </div>
+                      <span className="font-bold">₹{withdrawal.amount}</span>
                     </div>
-                    <span className="font-bold">₹{withdrawal.amount}</span>
+                    {withdrawal.status === 'rejected' && withdrawal.admin_notes && (
+                      <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded text-sm text-red-600">
+                        <strong>Reason:</strong> {withdrawal.admin_notes}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
