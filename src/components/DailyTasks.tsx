@@ -328,7 +328,7 @@ export const DailyTasks = () => {
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>{completedCount}/{tasks.length} completed</span>
-          <Progress value={(completedCount / tasks.length) * 100} className="flex-1 h-1.5" />
+          <Progress value={tasks.length > 0 ? (completedCount / tasks.length) * 100 : 0} className="flex-1 h-1.5" />
         </div>
         {streak.longest_streak > 1 && (
           <p className="text-xs text-muted-foreground">

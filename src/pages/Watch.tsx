@@ -52,7 +52,7 @@ const Watch = () => {
   const playerRef = useRef<any>(null);
   const playerContainerId = `youtube-player-${id}`;
 
-  const requiredWatchTime = Math.max(30, Math.floor(videoDuration * WATCH_PERCENTAGE));
+  const requiredWatchTime = videoDuration > 0 ? Math.max(30, Math.floor(videoDuration * WATCH_PERCENTAGE)) : 30;
 
   // Load YouTube IFrame API
   useEffect(() => {
