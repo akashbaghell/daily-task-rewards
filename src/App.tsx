@@ -17,6 +17,9 @@ import Wallet from "./pages/Wallet";
 import Upload from "./pages/Upload";
 import CreatorDashboard from "./pages/CreatorDashboard";
 import Transactions from "./pages/Transactions";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Terms from "./pages/Terms";
+import Security from "./pages/Security";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +45,9 @@ const App = () => (
               <Route path="/upload" element={<Upload />} />
               <Route path="/creator" element={<CreatorDashboard />} />
               <Route path="/transactions" element={<Transactions />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/security" element={<Security />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

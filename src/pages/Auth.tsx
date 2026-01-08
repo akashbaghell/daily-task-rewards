@@ -8,7 +8,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Play, Loader2, Globe, ArrowLeft } from 'lucide-react';
+import { Play, Loader2, Globe, ArrowLeft, Shield } from 'lucide-react';
 import { z } from 'zod';
 
 const emailSchema = z.string().email('Invalid email address');
@@ -326,6 +326,19 @@ const Auth = () => {
                     </p>
                   )}
                 </div>
+
+                {mode === 'signup' && (
+                  <div className="mt-4 p-3 rounded-lg bg-muted/50 border border-border">
+                    <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                      <Shield className="h-4 w-4 mt-0.5 text-green-500 flex-shrink-0" />
+                      <p>
+                        Your data is protected with industry-standard encryption. By signing up, you agree to our{' '}
+                        <Link to="/terms" className="text-primary hover:underline">Terms</Link> and{' '}
+                        <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </CardContent>
