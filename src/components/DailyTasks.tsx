@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { CheckCircle2, Circle, Gift, Sparkles, Flame, Coins } from 'lucide-react';
+import { CheckCircle2, Circle, Gift, Sparkles, Flame, Coins, Trophy } from 'lucide-react';
 import { triggerCoinShower } from '@/lib/confetti';
 import { playCoinSound, playStreakSound } from '@/lib/sounds';
 
@@ -27,6 +27,9 @@ interface UserStreak {
   longest_streak: number;
   last_login_date: string | null;
 }
+
+const STREAK_GOAL = 26;
+const STREAK_REWARD = 500; // Surprise gift coins
 
 export const DailyTasks = () => {
   const { user } = useAuth();
@@ -86,6 +89,40 @@ export const DailyTasks = () => {
     setReferralCount(refData || 0);
   };
 
+  const awardStreakReward = async (streakCount: number) => {
+    if (!user) return;
+
+    // Record coin transaction
+    await supabase.from('coin_transactions').insert({
+      user_id: user.id,
+      amount: STREAK_REWARD,
+      type: 'streak_bonus',
+      description: `🎁 Completed ${STREAK_GOAL}-day streak challenge!`,
+    });
+
+    // Update wallet coins
+    const { data: wallet } = await supabase
+      .from('user_wallets')
+      .select('coins')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (wallet) {
+      await supabase
+        .from('user_wallets')
+        .update({
+          coins: (wallet.coins || 0) + STREAK_REWARD,
+        })
+        .eq('user_id', user.id);
+    }
+
+    triggerCoinShower();
+    playStreakSound();
+    toast.success(`🎁 Surprise Gift! You earned ${STREAK_REWARD} coins for ${STREAK_GOAL}-day streak!`, {
+      duration: 5000,
+    });
+  };
+
   const updateStreak = async () => {
     if (!user) return;
 
@@ -110,8 +147,15 @@ export const DailyTasks = () => {
         });
       } else if (streakData.last_login_date === yesterday) {
         // Consecutive login - increment streak
-        const newStreak = streakData.current_streak + 1;
-        const longestStreak = Math.max(newStreak, streakData.longest_streak);
+        let newStreak = streakData.current_streak + 1;
+        let longestStreak = Math.max(newStreak, streakData.longest_streak);
+        
+        // Check if 26-day streak is completed
+        if (newStreak >= STREAK_GOAL) {
+          await awardStreakReward(newStreak);
+          // Reset streak after reward
+          newStreak = 0;
+        }
         
         await supabase
           .from('user_streaks')
@@ -129,9 +173,9 @@ export const DailyTasks = () => {
           last_login_date: today,
         });
 
-        if (newStreak === 7) {
+        if (newStreak > 0 && newStreak % 7 === 0) {
           playStreakSound();
-          toast.success('🔥 7-Day Streak! You earned a bonus!');
+          toast.success(`🔥 ${newStreak}-Day Streak! Keep going!`);
         } else if (newStreak > 1) {
           toast.success(`🔥 ${newStreak} Day Streak!`);
         }
@@ -151,6 +195,10 @@ export const DailyTasks = () => {
           longest_streak: streakData.longest_streak,
           last_login_date: today,
         });
+
+        if (streakData.current_streak > 1) {
+          toast.error(`Streak lost! You missed a day. Starting fresh at Day 1.`);
+        }
       }
     } else {
       // First time - create streak record
@@ -305,6 +353,9 @@ export const DailyTasks = () => {
     );
   }
 
+  const streakProgress = (streak.current_streak / STREAK_GOAL) * 100;
+  const daysRemaining = STREAK_GOAL - streak.current_streak;
+
   return (
     <Card className="border-primary/20 bg-gradient-to-br from-background to-primary/5">
       <CardHeader className="pb-3">
@@ -313,20 +364,48 @@ export const DailyTasks = () => {
             <Sparkles className="h-5 w-5 text-primary" />
             Daily Tasks
           </CardTitle>
-          <div className="flex items-center gap-3">
-            {/* Streak Badge */}
-            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-orange-500/10 border border-orange-500/30">
-              <Flame className="h-4 w-4 text-orange-500" />
-              <span className="text-sm font-bold text-orange-500">{streak.current_streak}</span>
-              <span className="text-xs text-muted-foreground">day{streak.current_streak !== 1 ? 's' : ''}</span>
-            </div>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Coins className="h-4 w-4 text-yellow-500" />
-              <span className="font-medium text-yellow-600">{totalReward}</span>
-            </div>
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Coins className="h-4 w-4 text-yellow-500" />
+            <span className="font-medium text-yellow-600">{totalReward}</span>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+
+        {/* 26-Day Streak Challenge */}
+        <div className="p-3 rounded-lg bg-gradient-to-r from-orange-500/10 via-yellow-500/10 to-orange-500/10 border border-orange-500/30">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-500" />
+              <span className="font-semibold text-sm">26-Day Streak Challenge</span>
+            </div>
+            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-orange-500/20">
+              <Flame className="h-4 w-4 text-orange-500" />
+              <span className="text-sm font-bold text-orange-500">{streak.current_streak}/{STREAK_GOAL}</span>
+            </div>
+          </div>
+          <Progress value={streakProgress} className="h-2 mb-2" />
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">
+              {streak.current_streak > 0 ? (
+                daysRemaining > 0 
+                  ? `${daysRemaining} days remaining for surprise gift!`
+                  : 'Collecting reward...'
+              ) : (
+                'Login daily to start your streak!'
+              )}
+            </span>
+            <div className="flex items-center gap-1 text-yellow-600">
+              <Gift className="h-3 w-3" />
+              <span className="font-medium">{STREAK_REWARD} coins</span>
+            </div>
+          </div>
+          {streak.current_streak === 0 && (
+            <p className="text-xs text-red-500 mt-1">
+              ⚠️ Miss a day and your streak resets!
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
           <span>{completedCount}/{tasks.length} completed</span>
           <Progress value={tasks.length > 0 ? (completedCount / tasks.length) * 100 : 0} className="flex-1 h-1.5" />
         </div>

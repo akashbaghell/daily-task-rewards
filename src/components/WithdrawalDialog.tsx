@@ -34,7 +34,7 @@ export const WithdrawalDialog = ({ open, onOpenChange, maxAmount }: WithdrawalDi
   const [saveBankDetails, setSaveBankDetails] = useState(false);
   const [hasSavedDetails, setHasSavedDetails] = useState(false);
   
-  const [amount, setAmount] = useState('5000');
+  const [amount, setAmount] = useState('1000');
   const [bankName, setBankName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [confirmAccountNumber, setConfirmAccountNumber] = useState('');
@@ -72,8 +72,8 @@ export const WithdrawalDialog = ({ open, onOpenChange, maxAmount }: WithdrawalDi
     
     const withdrawAmount = parseInt(amount);
     
-    if (withdrawAmount < 5000) {
-      toast.error('Minimum withdrawal is ₹5000');
+    if (withdrawAmount < 1000) {
+      toast.error('Minimum withdrawal is ₹1000');
       return;
     }
     
@@ -133,7 +133,7 @@ export const WithdrawalDialog = ({ open, onOpenChange, maxAmount }: WithdrawalDi
       toast.success('Withdrawal request submitted! Admin will review soon.');
       onOpenChange(false);
       // Reset form
-      setAmount('5000');
+      setAmount('1000');
       setBankName('');
       setAccountNumber('');
       setConfirmAccountNumber('');
@@ -178,11 +178,11 @@ export const WithdrawalDialog = ({ open, onOpenChange, maxAmount }: WithdrawalDi
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="amount">Withdrawal Amount (Min ₹5000)</Label>
+              <Label htmlFor="amount">Withdrawal Amount (Min ₹1000)</Label>
               <Input
                 id="amount"
                 type="number"
-                min={5000}
+                min={1000}
                 max={maxAmount}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
