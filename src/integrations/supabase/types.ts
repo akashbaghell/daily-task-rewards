@@ -272,6 +272,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       referral_milestones: {
@@ -359,10 +366,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "referrals_referred_id_fkey"
+            columns: ["referred_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "referrals_referrer_id_fkey"
             columns: ["referrer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -711,7 +732,66 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_public: {
+        Row: {
+          display_name: string | null
+          id: string | null
+          referral_code: string | null
+        }
+        Insert: {
+          display_name?: never
+          id?: string | null
+          referral_code?: string | null
+        }
+        Update: {
+          display_name?: never
+          id?: string | null
+          referral_code?: string | null
+        }
+        Relationships: []
+      }
+      withdrawal_requests_masked: {
+        Row: {
+          account_holder_masked: string | null
+          account_number_masked: string | null
+          admin_notes: string | null
+          amount: number | null
+          bank_name_masked: string | null
+          created_at: string | null
+          id: string | null
+          ifsc_masked: string | null
+          processed_at: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          account_holder_masked?: never
+          account_number_masked?: never
+          admin_notes?: string | null
+          amount?: number | null
+          bank_name_masked?: never
+          created_at?: string | null
+          id?: string | null
+          ifsc_masked?: never
+          processed_at?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          account_holder_masked?: never
+          account_number_masked?: never
+          admin_notes?: string | null
+          amount?: number | null
+          bank_name_masked?: never
+          created_at?: string | null
+          id?: string | null
+          ifsc_masked?: never
+          processed_at?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_referral_bonus: {

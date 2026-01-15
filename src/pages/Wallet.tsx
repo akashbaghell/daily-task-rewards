@@ -72,9 +72,9 @@ const WalletPage = () => {
 
       if (earningsData) setEarnings(earningsData);
 
-      // Fetch withdrawal requests
+      // Fetch withdrawal requests (using masked view for security)
       const { data: withdrawalsData } = await supabase
-        .from('withdrawal_requests')
+        .from('withdrawal_requests_masked')
         .select('id, amount, status, admin_notes, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
