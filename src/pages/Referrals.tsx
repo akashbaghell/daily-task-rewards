@@ -16,7 +16,7 @@ interface Referral {
   created_at: string;
   referred_id: string;
   referred: {
-    full_name: string | null;
+    display_name: string | null;
   };
 }
 
@@ -74,7 +74,7 @@ const Referrals = () => {
             id,
             created_at,
             referred_id,
-            referred:referred_id (full_name)
+            referred:profiles_public!referred_id (display_name)
           `)
           .eq('referrer_id', user.id)
           .order('created_at', { ascending: false }),
@@ -96,7 +96,7 @@ const Referrals = () => {
           created_at: item.created_at,
           referred_id: item.referred_id,
           referred: {
-            full_name: item.referred?.full_name || 'Unknown User',
+            display_name: item.referred?.display_name || 'Unknown User',
           },
         }));
         setReferrals(formattedData);
@@ -448,11 +448,11 @@ const Referrals = () => {
                               <div className="flex items-center gap-3">
                                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                                   <span className="text-sm font-semibold text-primary">
-                                    {referral.referred.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                                    {referral.referred.display_name?.charAt(0)?.toUpperCase() || 'U'}
                                   </span>
                                 </div>
                                 <div>
-                                  <p className="font-medium">{referral.referred.full_name}</p>
+                                  <p className="font-medium">{referral.referred.display_name}</p>
                                   <p className="text-xs text-muted-foreground">
                                     Joined {new Date(referral.created_at).toLocaleDateString()} • {details.taskCount} tasks
                                   </p>
@@ -580,7 +580,7 @@ const Referrals = () => {
                           const referral = referrals.find(
                             r => r.referred_id === (item.data as any).referred_id
                           );
-                          const userName = referral?.referred.full_name || 'Someone';
+                          const userName = referral?.referred.display_name || 'Someone';
 
                           if (item.type === 'task') {
                             const tc = item.data as TaskCompletion;
