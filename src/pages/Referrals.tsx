@@ -61,11 +61,7 @@ const Referrals = () => {
   const [loading, setLoading] = useState(true);
   const [expandedReferral, setExpandedReferral] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
+  // Show promotional content for non-logged-in users instead of redirecting
 
   useEffect(() => {
     const fetchData = async () => {
@@ -164,7 +160,147 @@ const Referrals = () => {
     return MILESTONE_TARGETS.find(m => taskCount < m.target);
   };
 
-  if (authLoading || loading) {
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 w-48 bg-muted rounded" />
+            <div className="h-48 bg-muted rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show promotional content for non-logged-in users
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <h1 className="font-display text-3xl font-bold mb-8">{t('referrals.title')}</h1>
+          
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {/* Earn by Watching Videos */}
+            <Card className="animate-fade-in border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-primary">
+                  <Coins className="h-6 w-6" />
+                  Videos देखकर कमाएं
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-4xl font-bold text-primary">₹5-10</div>
+                <p className="text-muted-foreground">हर वीडियो देखने पर</p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    रोज़ाना unlimited videos देखें
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    तुरंत पैसे wallet में जमा
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    Entertainment + Earning
+                  </li>
+                </ul>
+                <Button className="w-full" onClick={() => navigate('/videos')}>
+                  Videos देखना शुरू करें
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Earn by Referring */}
+            <Card className="animate-fade-in border-2 border-yellow-500/20 bg-gradient-to-br from-yellow-500/5 to-transparent" style={{ animationDelay: '0.1s' }}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
+                  <Users className="h-6 w-6" />
+                  Refer करके कमाएं
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-4xl font-bold text-yellow-600 dark:text-yellow-400">₹50</div>
+                <p className="text-muted-foreground">हर referral पर bonus</p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                    दोस्तों को invite करें
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                    उनके हर task पर 5 coins
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                    Milestone bonuses तक ₹500
+                  </li>
+                </ul>
+                <Button variant="outline" className="w-full border-yellow-500/50 text-yellow-600 hover:bg-yellow-500/10" onClick={() => navigate('/auth?mode=signup')}>
+                  अभी Register करें
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Daily Tasks */}
+            <Card className="animate-fade-in border-2 border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent" style={{ animationDelay: '0.2s' }}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                  <Trophy className="h-6 w-6" />
+                  Daily Tasks पूरे करें
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-4xl font-bold text-green-600 dark:text-green-400">₹100+</div>
+                <p className="text-muted-foreground">रोज़ाना कमाने का मौका</p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    आसान daily tasks
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    Streak bonus rewards
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    Bank में direct withdrawal
+                  </li>
+                </ul>
+                <Button variant="outline" className="w-full border-green-500/50 text-green-600 hover:bg-green-500/10" onClick={() => navigate('/auth?mode=signup')}>
+                  Free में Join करें
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* CTA Section */}
+          <Card className="mt-8 bg-gradient-to-r from-primary/10 via-yellow-500/10 to-green-500/10 border-2 border-primary/20">
+            <CardContent className="py-8 text-center">
+              <h2 className="text-2xl font-bold mb-2">आज ही शुरू करें! 🚀</h2>
+              <p className="text-muted-foreground mb-6">
+                Free registration, No investment, Real money withdrawal
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button size="lg" onClick={() => navigate('/auth?mode=signup')}>
+                  <UserPlus className="mr-2 h-5 w-5" />
+                  अभी Register करें
+                </Button>
+                <Button size="lg" variant="outline" onClick={() => navigate('/auth?mode=login')}>
+                  Login करें
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
