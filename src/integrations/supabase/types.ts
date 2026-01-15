@@ -750,6 +750,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_bank_details_masked: {
+        Row: {
+          account_holder_masked: string | null
+          account_number_masked: string | null
+          bank_name_masked: string | null
+          created_at: string | null
+          id: string | null
+          ifsc_masked: string | null
+          is_primary: boolean | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          account_holder_masked?: never
+          account_number_masked?: never
+          bank_name_masked?: never
+          created_at?: string | null
+          id?: string | null
+          ifsc_masked?: never
+          is_primary?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          account_holder_masked?: never
+          account_number_masked?: never
+          bank_name_masked?: never
+          created_at?: string | null
+          id?: string | null
+          ifsc_masked?: never
+          is_primary?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       withdrawal_requests_masked: {
         Row: {
           account_holder_masked: string | null
