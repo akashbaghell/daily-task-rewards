@@ -98,35 +98,24 @@ export const CoinShop = () => {
     setConverting(true);
 
     try {
-      const { error: walletError } = await supabase
-        .from('user_wallets')
-        .update({
-          coins: wallet.coins - actualCoinsUsed,
-          balance: wallet.balance + rupeesToAdd,
-        })
-        .eq('user_id', user.id);
-
-      if (walletError) throw walletError;
-
-      await supabase.from('coin_transactions').insert({
-        user_id: user.id,
-        amount: -actualCoinsUsed,
-        type: 'converted',
-        description: `Converted ${actualCoinsUsed} coins to ₹${rupeesToAdd}`,
+      // Use secure RPC function to convert coins
+      const { data: success, error } = await supabase.rpc('convert_coins_to_rupees', {
+        p_user_id: user.id,
+        p_coins: coinsToConvert,
       });
 
-      await supabase.from('earnings').insert({
-        user_id: user.id,
-        amount: rupeesToAdd,
-        type: 'coin_conversion',
-      });
+      if (error) throw error;
 
-      toast.success(`🎉 Converted ${actualCoinsUsed} coins to ₹${rupeesToAdd}!`);
-      setDialogOpen(false);
-      fetchData();
-    } catch (error) {
+      if (success) {
+        const rupeesToAdd = calculateRupees(coinsToConvert);
+        const actualCoinsUsed = rupeesToAdd * COINS_TO_RUPEE_RATE;
+        toast.success(`🎉 Converted ${actualCoinsUsed} coins to ₹${rupeesToAdd}!`);
+        setDialogOpen(false);
+        fetchData();
+      }
+    } catch (error: any) {
       console.error('Conversion error:', error);
-      toast.error('Failed to convert coins');
+      toast.error(error.message || 'Failed to convert coins');
     } finally {
       setConverting(false);
     }

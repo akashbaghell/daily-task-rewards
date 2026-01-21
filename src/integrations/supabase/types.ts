@@ -834,6 +834,10 @@ export type Database = {
         Args: { p_referred_id: string; p_referrer_id: string }
         Returns: undefined
       }
+      convert_coins_to_rupees: {
+        Args: { p_coins: number; p_user_id: string }
+        Returns: boolean
+      }
       generate_referral_code: { Args: never; Returns: string }
       has_role: {
         Args: {
