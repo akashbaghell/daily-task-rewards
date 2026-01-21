@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Share2, IndianRupee, CheckCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Share2, Coins, CheckCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { triggerRewardConfetti } from '@/lib/confetti';
 import { playFanfareSound } from '@/lib/sounds';
@@ -130,17 +130,17 @@ const Watch = () => {
             { onConflict: 'user_id,video_id' }
           );
 
-          // Check if already earned for this video today
-          const { data: existingEarning } = await supabase
-            .from('earnings')
+          // Check if already earned coins for this video today
+          const { data: existingCoinTx } = await supabase
+            .from('coin_transactions')
             .select('id')
             .eq('user_id', user.id)
-            .eq('reference_id', id)
             .eq('type', 'video_watch')
+            .ilike('description', `%${id}%`)
             .gte('created_at', new Date().toISOString().split('T')[0])
             .maybeSingle();
 
-          if (existingEarning) {
+          if (existingCoinTx) {
             setCanEarn(false);
             setEarnedReward(true);
           }
@@ -204,8 +204,8 @@ const Watch = () => {
           setCanEarn(false);
           triggerRewardConfetti();
           playFanfareSound();
-          toast.success('₹20 earned for watching this video!', {
-            icon: <IndianRupee className="h-4 w-4 text-green-500" />,
+          toast.success('+20 Coins earned for watching this video!', {
+            icon: <Coins className="h-4 w-4 text-yellow-500" />,
           });
         }
       }
@@ -279,9 +279,9 @@ const Watch = () => {
             {user && (
               <div className="p-4 bg-muted/50 rounded-lg space-y-3">
                 {earnedReward ? (
-                  <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                    <CheckCircle className="h-5 w-5" />
-                    <span className="font-medium">+₹20 earned for watching this video!</span>
+                  <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
+                    <Coins className="h-5 w-5" />
+                    <span className="font-medium">+20 Coins earned for watching this video!</span>
                   </div>
                 ) : canEarn ? (
                   <>
@@ -290,7 +290,7 @@ const Watch = () => {
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <span className="text-muted-foreground">
                           {videoDuration > 0 
-                            ? `Watch ${remainingTime > 0 ? formatTime(remainingTime) + ' more' : 'Complete!'} to earn ₹20`
+                            ? `Watch ${remainingTime > 0 ? formatTime(remainingTime) + ' more' : 'Complete!'} to earn 20 Coins`
                             : 'Loading video...'
                           }
                         </span>
@@ -319,7 +319,7 @@ const Watch = () => {
                   <Button variant="link" className="p-0 h-auto" onClick={() => navigate('/auth')}>
                     Login
                   </Button>
-                  {' '}karke videos dekho aur ₹20 per video kamao!
+                  {' '}karke videos dekho aur 20 Coins per video kamao!
                 </p>
               </div>
             )}

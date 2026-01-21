@@ -134,10 +134,10 @@ const Referrals = () => {
   };
 
   const getTotalEarnings = () => {
-    const signupBonus = referrals.length * 50; // ₹50 per referral
+    const signupCoins = referrals.length * 100; // 100 coins per referral
     const taskCoins = taskCompletions.reduce((sum, tc) => sum + tc.coins_earned, 0);
     const milestoneCoins = milestones.reduce((sum, m) => sum + m.bonus_coins, 0);
-    return { signupBonus, taskCoins, milestoneCoins, totalCoins: taskCoins + milestoneCoins };
+    return { signupCoins, taskCoins, milestoneCoins, totalCoins: signupCoins + taskCoins + milestoneCoins };
   };
 
   const referralLink = profile?.referral_code
@@ -223,8 +223,8 @@ const Referrals = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="text-4xl font-bold text-yellow-600 dark:text-yellow-400">₹50</div>
-                <p className="text-muted-foreground">हर referral पर bonus</p>
+                <div className="text-4xl font-bold text-yellow-600 dark:text-yellow-400">100 🪙</div>
+                <p className="text-muted-foreground">हर referral पर coins</p>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-yellow-500" />
@@ -333,9 +333,9 @@ const Referrals = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                  💰 1 Referral = ₹50 Bonus!
+              <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
+                  🪙 1 Referral = 100 Coins!
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   + 5 coins per task they complete
@@ -347,8 +347,8 @@ const Referrals = () => {
                 <p className="text-sm font-medium">Your Earnings</p>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <p className="text-muted-foreground">Signup Bonuses</p>
-                    <p className="font-bold text-green-600">₹{earnings.signupBonus}</p>
+                    <p className="text-muted-foreground">Signup Coins</p>
+                    <p className="font-bold text-yellow-600">{earnings.signupCoins} 🪙</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Task Coins</p>
