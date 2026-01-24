@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdmin } from '@/hooks/useAdmin';
-import { Play, Menu, X, Globe, LogOut, User, Shield, Wallet, Upload, Video } from 'lucide-react';
+import { Play, Menu, X, Globe, LogOut, User, Shield } from 'lucide-react';
+import { CoinCounter } from '@/components/CoinCounter';
 import { useState } from 'react';
 import {
   DropdownMenu,
@@ -66,6 +67,9 @@ export const Navbar = () => {
 
           {/* Right Side */}
           <div className="flex items-center gap-2">
+            {/* Coin Counter - only show for logged in users */}
+            {user && <CoinCounter />}
+
             {/* Language Toggle */}
             <Button
               variant="ghost"
