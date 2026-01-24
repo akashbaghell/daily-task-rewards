@@ -54,7 +54,7 @@ export const WalletCard = ({ onWithdrawClick }: WalletCardProps) => {
     );
   }
 
-  const canWithdraw = (wallet?.balance || 0) >= 5000;
+  const canWithdraw = (wallet?.balance || 0) >= 1000;
 
   return (
     <Card className="bg-gradient-to-br from-primary/10 via-background to-accent/10 border-primary/20">
@@ -96,7 +96,7 @@ export const WalletCard = ({ onWithdrawClick }: WalletCardProps) => {
           disabled={!canWithdraw}
         >
           <IndianRupee className="h-4 w-4 mr-2" />
-          {canWithdraw ? 'Withdraw Now' : `Min ₹5000 for withdrawal`}
+          {canWithdraw ? 'Withdraw Now' : `Min ₹1000 for withdrawal`}
         </Button>
       </CardContent>
     </Card>

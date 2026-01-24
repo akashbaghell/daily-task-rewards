@@ -1,3 +1,4 @@
+import { forwardRef, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -5,7 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { Play, Menu, X, Globe, LogOut, User, Shield } from 'lucide-react';
 import { CoinCounter } from '@/components/CoinCounter';
-import { useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export const Navbar = () => {
+export const Navbar = forwardRef<HTMLElement>((_, ref) => {
   const { t, language, toggleLanguage } = useLanguage();
   const { user, profile, signOut } = useAuth();
   const { isAdmin } = useAdmin();
@@ -40,7 +40,7 @@ export const Navbar = () => {
     : [];
 
   return (
-    <nav className="sticky top-0 z-50 glass border-b border-border">
+    <nav ref={ref} className="sticky top-0 z-50 glass border-b border-border">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -185,4 +185,6 @@ export const Navbar = () => {
       </div>
     </nav>
   );
-};
+});
+
+Navbar.displayName = 'Navbar';

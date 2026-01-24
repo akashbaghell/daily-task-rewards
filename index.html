@@ -6,16 +6,37 @@
     <title>VidShare - Watch Videos & Earn Rewards</title>
     <meta name="description" content="VidShare - Watch videos, earn rewards, and grow your network. Earn money by watching videos and referring friends." />
     <meta name="author" content="VidShare" />
-
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#e11d48" />
+    <link rel="canonical" href="https://vidshare.app" />
+    
+    <!-- Open Graph / Facebook -->
     <meta property="og:title" content="VidShare - Watch Videos & Earn Rewards" />
     <meta property="og:description" content="Watch videos, earn rewards, and grow your network. Earn money by watching videos and referring friends." />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://vidshare.app" />
+    <meta property="og:site_name" content="VidShare" />
+    <meta property="og:locale" content="en_IN" />
 
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@VidShare" />
+    <meta name="twitter:title" content="VidShare - Watch Videos & Earn Rewards" />
+    <meta name="twitter:description" content="Watch videos, earn rewards, and grow your network." />
+    
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://img.youtube.com" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/favicon.ico" />
   </head>
 
   <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, forwardRef } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { VideoCard } from '@/components/VideoCard';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ const categories = [
   { key: 'music', label: 'videos.music' },
 ];
 
-const Videos = () => {
+const Videos = forwardRef<HTMLDivElement>((_, ref) => {
   const { t } = useLanguage();
   const [videos, setVideos] = useState<VideoType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +45,7 @@ const Videos = () => {
   }, [activeCategory]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div ref={ref} className="min-h-screen bg-background">
       <Navbar />
 
       <main className="container mx-auto px-4 py-8">
@@ -94,6 +94,8 @@ const Videos = () => {
       </main>
     </div>
   );
-};
+});
+
+Videos.displayName = 'Videos';
 
 export default Videos;
