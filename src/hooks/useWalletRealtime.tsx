@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -7,12 +7,24 @@ interface WalletData {
   balance: number;
 }
 
+interface CoinChange {
+  id: string;
+  amount: number;
+  timestamp: number;
+}
+
 export const useWalletRealtime = () => {
   const { user } = useAuth();
   const [wallet, setWallet] = useState<WalletData>({ coins: 0, balance: 0 });
   const [loading, setLoading] = useState(true);
   const [animating, setAnimating] = useState(false);
+  const [coinChanges, setCoinChanges] = useState<CoinChange[]>([]);
   const previousCoins = useRef<number>(0);
+  const isInitialized = useRef(false);
+
+  const removeCoinChange = useCallback((id: string) => {
+    setCoinChanges(prev => prev.filter(change => change.id !== id));
+  }, []);
 
   useEffect(() => {
     const fetchWallet = async () => {
@@ -31,6 +43,7 @@ export const useWalletRealtime = () => {
       if (data) {
         previousCoins.current = data.coins || 0;
         setWallet({ coins: data.coins || 0, balance: data.balance || 0 });
+        isInitialized.current = true;
       }
       setLoading(false);
     };
@@ -53,11 +66,20 @@ export const useWalletRealtime = () => {
         (payload) => {
           const newCoins = payload.new.coins || 0;
           const newBalance = payload.new.balance || 0;
+          const coinDiff = newCoins - previousCoins.current;
           
-          // Trigger animation if coins increased
-          if (newCoins > previousCoins.current) {
+          // Only trigger animation if coins increased and we've initialized
+          if (coinDiff > 0 && isInitialized.current) {
             setAnimating(true);
             setTimeout(() => setAnimating(false), 600);
+            
+            // Add floating notification
+            const changeId = `${Date.now()}-${Math.random()}`;
+            setCoinChanges(prev => [...prev, {
+              id: changeId,
+              amount: coinDiff,
+              timestamp: Date.now(),
+            }]);
           }
           
           previousCoins.current = newCoins;
@@ -71,5 +93,5 @@ export const useWalletRealtime = () => {
     };
   }, [user]);
 
-  return { wallet, loading, animating };
+  return { wallet, loading, animating, coinChanges, removeCoinChange };
 };
