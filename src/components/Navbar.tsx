@@ -76,6 +76,7 @@ export const Navbar = forwardRef<HTMLElement>((_, ref) => {
               size="icon"
               onClick={toggleLanguage}
               className="hidden sm:flex"
+              aria-label={language === 'en' ? 'Switch to Hindi' : 'Switch to English'}
             >
               <Globe className="h-4 w-4" />
               <span className="ml-1 text-xs font-medium">
@@ -133,6 +134,8 @@ export const Navbar = forwardRef<HTMLElement>((_, ref) => {
               size="icon"
               className="md:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>

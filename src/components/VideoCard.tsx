@@ -33,6 +33,9 @@ export const VideoCard = forwardRef<HTMLDivElement, VideoCardProps>(
           <img
             src={thumbnail}
             alt={title}
+            loading="lazy"
+            width={480}
+            height={270}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             onError={(e) => {
               (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
