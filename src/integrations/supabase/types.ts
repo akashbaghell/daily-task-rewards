@@ -610,6 +610,7 @@ export type Database = {
       }
       video_watches: {
         Row: {
+          claim_hour: string | null
           coins_earned: number
           id: string
           user_id: string
@@ -618,6 +619,7 @@ export type Database = {
           watched_at: string
         }
         Insert: {
+          claim_hour?: string | null
           coins_earned?: number
           id?: string
           user_id: string
@@ -626,6 +628,7 @@ export type Database = {
           watched_at?: string
         }
         Update: {
+          claim_hour?: string | null
           coins_earned?: number
           id?: string
           user_id?: string
