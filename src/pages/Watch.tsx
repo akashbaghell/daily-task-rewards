@@ -130,17 +130,17 @@ const Watch = () => {
             { onConflict: 'user_id,video_id' }
           );
 
-          // Check if already earned coins for this video today
-          const { data: existingCoinTx } = await supabase
-            .from('coin_transactions')
+          // Check if already earned coins for this video today using video_watches table
+          const today = new Date().toISOString().split('T')[0];
+          const { data: existingWatch } = await supabase
+            .from('video_watches')
             .select('id')
             .eq('user_id', user.id)
-            .eq('type', 'video_watch')
-            .ilike('description', `%${id}%`)
-            .gte('created_at', new Date().toISOString().split('T')[0])
+            .eq('video_id', id)
+            .eq('watch_date', today)
             .maybeSingle();
 
-          if (existingCoinTx) {
+          if (existingWatch) {
             setCanEarn(false);
             setEarnedReward(true);
           }
