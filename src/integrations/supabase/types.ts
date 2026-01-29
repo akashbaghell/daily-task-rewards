@@ -608,6 +608,41 @@ export type Database = {
         }
         Relationships: []
       }
+      video_watches: {
+        Row: {
+          coins_earned: number
+          id: string
+          user_id: string
+          video_id: string
+          watch_date: string
+          watched_at: string
+        }
+        Insert: {
+          coins_earned?: number
+          id?: string
+          user_id: string
+          video_id: string
+          watch_date?: string
+          watched_at?: string
+        }
+        Update: {
+          coins_earned?: number
+          id?: string
+          user_id?: string
+          video_id?: string
+          watch_date?: string
+          watched_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_watches_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       videos: {
         Row: {
           category: string | null
