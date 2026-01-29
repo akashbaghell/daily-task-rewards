@@ -858,6 +858,17 @@ export type Database = {
         Args: { p_user_id: string; p_video_id: string }
         Returns: boolean
       }
+      submit_withdrawal_request: {
+        Args: {
+          p_account_holder_name: string
+          p_account_number: string
+          p_amount: number
+          p_bank_name: string
+          p_ifsc_code: string
+          p_save_bank_details?: boolean
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
