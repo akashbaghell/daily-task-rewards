@@ -57,6 +57,13 @@ export type Database = {
             referencedRelation: "videos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ad_views_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ads: {
@@ -172,6 +179,13 @@ export type Database = {
             columns: ["video_id"]
             isOneToOne: false
             referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_earnings_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos_public"
             referencedColumns: ["id"]
           },
         ]
@@ -644,6 +658,13 @@ export type Database = {
             referencedRelation: "videos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "video_watches_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       videos: {
@@ -722,6 +743,13 @@ export type Database = {
             columns: ["video_id"]
             isOneToOne: false
             referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "watch_history_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos_public"
             referencedColumns: ["id"]
           },
         ]
@@ -821,6 +849,51 @@ export type Database = {
           is_primary?: boolean | null
           updated_at?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      videos_public: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          duration: number | null
+          id: string | null
+          is_featured: boolean | null
+          status: string | null
+          thumbnail_url: string | null
+          title: string | null
+          video_url: string | null
+          view_count: number | null
+          youtube_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration?: number | null
+          id?: string | null
+          is_featured?: boolean | null
+          status?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          video_url?: string | null
+          view_count?: number | null
+          youtube_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration?: number | null
+          id?: string | null
+          is_featured?: boolean | null
+          status?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          video_url?: string | null
+          view_count?: number | null
+          youtube_id?: string | null
         }
         Relationships: []
       }
