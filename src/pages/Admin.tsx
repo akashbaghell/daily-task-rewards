@@ -860,23 +860,8 @@ const Admin = () => {
   };
 
   const handleWithdrawalAction = async (id: string, action: 'approved' | 'rejected' | 'processing', userId: string, amount: number, notes?: string) => {
-    const updateData: { status: string; processed_at: string | null; admin_notes?: string | null } = {
-      status: action,
-      processed_at: action === 'approved' || action === 'rejected' ? new Date().toISOString() : null,
-      admin_notes: notes || null,
-    };
-
-    const { error } = await supabase
-      .from('withdrawal_requests')
-      .update(updateData)
-      .eq('id', id);
-
-    if (error) {
-      toast.error('Failed to update withdrawal');
-      return;
-    }
-
-    // If approved, deduct from wallet using the secure RPC function
+    // For approval, use the atomic RPC which handles both status update and wallet deduction
+    // This prevents race conditions where status is updated separately from balance
     if (action === 'approved') {
       const { error: withdrawalError } = await supabase.rpc('process_withdrawal', {
         p_withdrawal_id: id,
@@ -886,6 +871,23 @@ const Admin = () => {
 
       if (withdrawalError) {
         toast.error('Failed to process withdrawal: ' + withdrawalError.message);
+        return;
+      }
+    } else {
+      // For rejected/processing, update status directly (no balance change)
+      const updateData: { status: string; processed_at: string | null; admin_notes?: string | null } = {
+        status: action,
+        processed_at: action === 'rejected' ? new Date().toISOString() : null,
+        admin_notes: notes || null,
+      };
+
+      const { error } = await supabase
+        .from('withdrawal_requests')
+        .update(updateData)
+        .eq('id', id);
+
+      if (error) {
+        toast.error('Failed to update withdrawal');
         return;
       }
     }
