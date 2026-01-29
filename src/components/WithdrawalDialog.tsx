@@ -94,53 +94,35 @@ export const WithdrawalDialog = ({ open, onOpenChange, maxAmount }: WithdrawalDi
 
     setLoading(true);
 
-    // Save bank details if checkbox is checked
-    if (saveBankDetails && user) {
-      const bankData = {
-        user_id: user.id,
-        bank_name: bankName.trim(),
-        account_holder_name: accountHolderName.trim(),
-        account_number: accountNumber.trim(),
-        ifsc_code: ifscCode.trim().toUpperCase(),
-      };
-
-      if (hasSavedDetails) {
-        await supabase
-          .from('user_bank_details')
-          .update(bankData)
-          .eq('user_id', user.id);
-      } else {
-        await supabase
-          .from('user_bank_details')
-          .insert(bankData);
-      }
-    }
-
-    const { error } = await supabase
-      .from('withdrawal_requests')
-      .insert({
-        user_id: user?.id,
-        amount: withdrawAmount,
-        bank_name: bankName.trim(),
-        account_number: accountNumber.trim(),
-        ifsc_code: ifscCode.trim().toUpperCase(),
-        account_holder_name: accountHolderName.trim(),
-      });
+    // Use secure RPC function for withdrawal with server-side validation
+    const { data, error } = await supabase.rpc('submit_withdrawal_request', {
+      p_amount: withdrawAmount,
+      p_bank_name: bankName.trim(),
+      p_account_number: accountNumber.trim(),
+      p_ifsc_code: ifscCode.trim().toUpperCase(),
+      p_account_holder_name: accountHolderName.trim(),
+      p_save_bank_details: saveBankDetails
+    });
 
     if (error) {
       toast.error('Failed to submit withdrawal request');
-    } else {
-      toast.success('Withdrawal request submitted! Admin will review soon.');
-      onOpenChange(false);
-      // Reset form
-      setAmount('1000');
-      setBankName('');
-      setAccountNumber('');
-      setConfirmAccountNumber('');
-      setIfscCode('');
-      setAccountHolderName('');
-      setSaveBankDetails(false);
-      setHasSavedDetails(false);
+    } else if (data && typeof data === 'object' && 'success' in data) {
+      const result = data as { success: boolean; error?: string; message?: string };
+      if (result.success) {
+        toast.success('Withdrawal request submitted! Admin will review soon.');
+        onOpenChange(false);
+        // Reset form
+        setAmount('1000');
+        setBankName('');
+        setAccountNumber('');
+        setConfirmAccountNumber('');
+        setIfscCode('');
+        setAccountHolderName('');
+        setSaveBankDetails(false);
+        setHasSavedDetails(false);
+      } else {
+        toast.error(result.error || 'Failed to submit withdrawal request');
+      }
     }
 
     setLoading(false);
