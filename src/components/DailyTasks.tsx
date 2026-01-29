@@ -92,35 +92,24 @@ export const DailyTasks = () => {
   const awardStreakReward = async (streakCount: number) => {
     if (!user) return;
 
-    // Record coin transaction
-    await supabase.from('coin_transactions').insert({
-      user_id: user.id,
-      amount: STREAK_REWARD,
-      type: 'streak_bonus',
-      description: `🎁 Completed ${STREAK_GOAL}-day streak challenge!`,
-    });
+    try {
+      // Use secure RPC function to award streak bonus
+      const { error } = await supabase.rpc('award_streak_bonus', {
+        p_user_id: user.id,
+        p_streak_count: streakCount,
+        p_bonus_coins: STREAK_REWARD,
+      });
 
-    // Update wallet coins
-    const { data: wallet } = await supabase
-      .from('user_wallets')
-      .select('coins')
-      .eq('user_id', user.id)
-      .maybeSingle();
+      if (error) throw error;
 
-    if (wallet) {
-      await supabase
-        .from('user_wallets')
-        .update({
-          coins: (wallet.coins || 0) + STREAK_REWARD,
-        })
-        .eq('user_id', user.id);
+      triggerCoinShower();
+      playStreakSound();
+      toast.success(`🎁 Surprise Gift! You earned ${STREAK_REWARD} coins for ${STREAK_GOAL}-day streak!`, {
+        duration: 5000,
+      });
+    } catch (error) {
+      console.error('Error awarding streak bonus:', error);
     }
-
-    triggerCoinShower();
-    playStreakSound();
-    toast.success(`🎁 Surprise Gift! You earned ${STREAK_REWARD} coins for ${STREAK_GOAL}-day streak!`, {
-      duration: 5000,
-    });
   };
 
   const updateStreak = async () => {
@@ -263,64 +252,19 @@ export const DailyTasks = () => {
     if (!user || !isTaskCompleted(task) || isRewardClaimed(task.id)) return;
 
     try {
-      const today = new Date().toISOString().split('T')[0];
-
-      // Check if already claimed today
-      const { data: existing } = await supabase
-        .from('user_daily_tasks')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('task_id', task.id)
-        .eq('date', today)
-        .maybeSingle();
-
-      if (existing) {
-        toast.error('Reward already claimed today!');
-        return;
-      }
-
-      // Insert completion record
-      const { error: insertError } = await supabase
-        .from('user_daily_tasks')
-        .insert({
-          user_id: user.id,
-          task_id: task.id,
-          reward_claimed: true,
-          date: today,
-        });
-
-      if (insertError) throw insertError;
-
-      // Record coin transaction
-      await supabase.from('coin_transactions').insert({
-        user_id: user.id,
-        amount: task.reward_amount,
-        type: 'earned',
-        description: `Completed task: ${task.title}`,
+      // Use secure RPC function to claim task reward
+      const { error } = await supabase.rpc('claim_task_reward', {
+        p_user_id: user.id,
+        p_task_id: task.id,
       });
 
-      // Update wallet coins
-      const { data: wallet } = await supabase
-        .from('user_wallets')
-        .select('coins')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (wallet) {
-        await supabase
-          .from('user_wallets')
-          .update({
-            coins: (wallet.coins || 0) + task.reward_amount,
-          })
-          .eq('user_id', user.id);
-      } else {
-        // Create wallet if doesn't exist
-        await supabase.from('user_wallets').insert({
-          user_id: user.id,
-          coins: task.reward_amount,
-          balance: 0,
-          total_earned: 0,
-        });
+      if (error) {
+        if (error.message.includes('already claimed')) {
+          toast.error('Reward already claimed today!');
+        } else {
+          throw error;
+        }
+        return;
       }
 
       triggerCoinShower();
