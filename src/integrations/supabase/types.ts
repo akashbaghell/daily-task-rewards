@@ -834,6 +834,18 @@ export type Database = {
         Args: { p_referred_id: string; p_referrer_id: string }
         Returns: undefined
       }
+      award_streak_bonus: {
+        Args: {
+          p_bonus_coins: number
+          p_streak_count: number
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      claim_task_reward: {
+        Args: { p_task_id: string; p_user_id: string }
+        Returns: boolean
+      }
       convert_coins_to_rupees: {
         Args: { p_coins: number; p_user_id: string }
         Returns: boolean
@@ -846,9 +858,19 @@ export type Database = {
         }
         Returns: boolean
       }
-      process_withdrawal: {
-        Args: { p_amount: number; p_user_id: string }
-        Returns: undefined
+      process_withdrawal:
+        | { Args: { p_amount: number; p_user_id: string }; Returns: undefined }
+        | {
+            Args: {
+              p_amount: number
+              p_user_id: string
+              p_withdrawal_id: string
+            }
+            Returns: boolean
+          }
+      purchase_reward: {
+        Args: { p_reward_id: string; p_user_id: string }
+        Returns: boolean
       }
       record_ad_view: {
         Args: { p_ad_id: string; p_video_id: string; p_viewer_id: string }

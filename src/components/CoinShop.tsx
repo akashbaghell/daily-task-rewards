@@ -137,32 +137,22 @@ export const CoinShop = () => {
     setPurchasing(reward.id);
 
     try {
-      // Deduct coins
-      const { error: walletError } = await supabase
-        .from('user_wallets')
-        .update({ coins: wallet.coins - reward.coin_price })
-        .eq('user_id', user.id);
-
-      if (walletError) throw walletError;
-
-      // Add user reward
-      const { error: rewardError } = await supabase
-        .from('user_rewards')
-        .insert({
-          user_id: user.id,
-          reward_id: reward.id,
-          expires_at: reward.type === 'boost' ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null,
-        });
-
-      if (rewardError) throw rewardError;
-
-      // Record transaction
-      await supabase.from('coin_transactions').insert({
-        user_id: user.id,
-        amount: -reward.coin_price,
-        type: 'spent',
-        description: `Purchased ${reward.name}`,
+      // Use secure RPC function to purchase reward
+      const { error } = await supabase.rpc('purchase_reward', {
+        p_user_id: user.id,
+        p_reward_id: reward.id,
       });
+
+      if (error) {
+        if (error.message.includes('Not enough coins')) {
+          toast.error('Not enough coins');
+        } else if (error.message.includes('already own')) {
+          toast.error('You already own this reward');
+        } else {
+          throw error;
+        }
+        return;
+      }
 
       toast.success(`🎉 ${reward.name} purchased!`);
       fetchData();

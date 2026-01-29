@@ -876,13 +876,18 @@ const Admin = () => {
       return;
     }
 
-    // If approved, deduct from wallet using the rpc function
+    // If approved, deduct from wallet using the secure RPC function
     if (action === 'approved') {
-      // @ts-ignore - process_withdrawal function exists in db
-      await supabase.rpc('process_withdrawal', {
+      const { error: withdrawalError } = await supabase.rpc('process_withdrawal', {
+        p_withdrawal_id: id,
         p_user_id: userId,
         p_amount: amount
       });
+
+      if (withdrawalError) {
+        toast.error('Failed to process withdrawal: ' + withdrawalError.message);
+        return;
+      }
     }
 
     const statusMessages = {
